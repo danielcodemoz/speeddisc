@@ -38,21 +38,23 @@ func runCapture(name string, args ...string) (string, error) {
 	return string(out), err
 }
 
-func runScan(out io.Writer, label string, max int, paint func(string) string, name string, args ...string) (int, string, *scanLine) {
-	line := newScanLine(out, label, max, paint)
-	filt := newPercentFilter(line)
-	cmd := exec.Command(name, args...)
-	cmd.Stdin = nil
-	withoutParentConsole(cmd)
-	cmd.Stdout = filt
-	cmd.Stderr = filt
-	err := cmd.Run()
+func runScan(out io.Writer, label string, max int, paint func(string) string, working string, utf8 bool, name string, args ...string) (int, string, *scanLine) {
+	// The live row is drawn by setPercent. The filter must not also call show(),
+	// or the spinner and the plain percent fight over the same row.
+	live := startLive(out, label, working, "", max, paint, utf8)
+	filt := newPercentFilter(nil)
+	filt.onPercent = live.setPercent
+	code, err := runToolOutput(name, args, filt)
 	filt.flush()
+	live.stop()
 	tail := clip(filt.rawText(), 240)
 	if tail == "" && err != nil {
 		tail = clip(err.Error(), 240)
 	}
-	return exitCode(err), tail, line
+	if err != nil && code == 0 {
+		code = -1
+	}
+	return code, tail, live.line
 }
 
 var guidRe = regexp.MustCompile(`(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
@@ -123,10 +125,10 @@ func createRestorePoint() error {
 	return nil
 }
 
-func runSFC(out io.Writer, max int, paint func(string) string) (int, string, *scanLine) {
-	return runScan(out, "SFC", max, paint, sysExe("sfc.exe"), "/scannow")
+func runSFC(out io.Writer, max int, paint func(string) string, working string, utf8 bool) (int, string, *scanLine) {
+	return runScan(out, "SFC", max, paint, working, utf8, sysExe("sfc.exe"), "/scannow")
 }
 
-func runDISM(out io.Writer, max int, paint func(string) string) (int, string, *scanLine) {
-	return runScan(out, "DISM", max, paint, sysExe("dism.exe"), "/Online", "/Cleanup-Image", "/RestoreHealth")
+func runDISM(out io.Writer, max int, paint func(string) string, working string, utf8 bool) (int, string, *scanLine) {
+	return runScan(out, "DISM", max, paint, working, utf8, sysExe("dism.exe"), "/Online", "/Cleanup-Image", "/RestoreHealth")
 }

@@ -31,7 +31,7 @@ func consoleColumns() int {
 	if err := windows.GetConsoleScreenBufferInfo(h, &info); err != nil {
 		return 0
 	}
-	w := int(info.Window.Right - info.Window.Left + 1)
+	w := visibleWidth(int(info.Window.Right-info.Window.Left+1), int(info.Size.X), 0)
 	if w < 1 {
 		return 0
 	}
@@ -52,7 +52,9 @@ func enableVT(f *os.File) bool {
 	if err := windows.GetConsoleMode(h, &mode); err != nil {
 		return false
 	}
-	if err := windows.SetConsoleMode(h, mode|windows.ENABLE_VIRTUAL_TERMINAL_PROCESSING); err != nil {
+	// Wrap at the real edge. Do not change the font, the window, or the buffer.
+	want := mode | windows.ENABLE_VIRTUAL_TERMINAL_PROCESSING | windows.ENABLE_WRAP_AT_EOL_OUTPUT
+	if err := windows.SetConsoleMode(h, want); err != nil {
 		return false
 	}
 	return true

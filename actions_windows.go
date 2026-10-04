@@ -67,8 +67,10 @@ func recordCommand(rep *Report, ui *UI, lang Lang, name tr, code int, tail strin
 		if code == 3010 {
 			final = m.Text(lang)
 		}
-		line.paint = func(s string) string { return ui.paint(ansiGreen, s) }
-		line.finish(fitConsole(ui, final))
+		if line != nil {
+			line.finish("")
+		}
+		ui.ok(final)
 		return
 	}
 	var detail any
@@ -79,24 +81,50 @@ func recordCommand(rep *Report, ui *UI, lang Lang, name tr, code int, tail strin
 	}
 	m := msg{"fail_cmd", []any{name, code, detail}}
 	rep.addFail(m)
-	line.paint = func(s string) string { return ui.paint(ansiRed, s) }
-	line.finish(fitConsole(ui, m.Text(lang)))
-}
-
-func fitConsole(ui *UI, s string) string {
-	text := "  " + s
-	w := ui.termWidth() - 1
-	if w < 1 {
-		w = 1
+	if line != nil {
+		line.finish("")
 	}
-	if runeLen(text) > w {
-		return clip(text, w)
-	}
-	return text
+	ui.err(m.Text(lang))
 }
 
 func scanPaint(ui *UI) func(string) string {
 	return func(s string) string { return ui.paint(ansiBoldCyan, s) }
+}
+
+func cleanPaths(ui *UI, lang Lang, labelKey string, kind CleanKind, paths []string) []Stats {
+	live := ui.track(T(lang, labelKey), T(lang, "working"), T(lang, "files_n"))
+	list := cleansNotify(kind, paths, live.setCount)
+	live.stopClear()
+	return list
+}
+
+func cleanThumbs(ui *UI, lang Lang) Stats {
+	live := ui.track(T(lang, "name_thumb"), T(lang, "working"), T(lang, "files_n"))
+	defer live.stopClear()
+	dir := thumbDir()
+	if dir == "" {
+		return Stats{Missing: true}
+	}
+	return CleanMatchingNotify(dir, thumbPatterns, live.setCount)
+}
+
+func cleansNotify(kind CleanKind, paths []string, tick func(int)) []Stats {
+	var out []Stats
+	base := 0
+	for _, p := range paths {
+		if strings.TrimSpace(p) == "" {
+			out = append(out, Stats{Missing: true})
+			continue
+		}
+		st := CleanNotify(kind, p, func(n int) {
+			if tick != nil {
+				tick(base + n)
+			}
+		})
+		base += st.Removed + st.Skipped
+		out = append(out, st)
+	}
+	return out
 }
 
 func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
@@ -111,60 +139,62 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 		switch a {
 		case ActInfo:
 		case ActRestore:
-			ui.step(T(lang, "running", T(lang, "name_restore")))
-			if err := createRestorePoint(); err != nil {
-				m := msg{"fail_restore", []any{errDetail(err)}}
-				rep.addFail(m)
-				ui.err(m.Text(lang))
-			} else {
-				m := msg{"done_restore", nil}
-				rep.addDone(m)
-				ui.ok(m.Text(lang))
+			{
+				ui.step(T(lang, "running", T(lang, "name_restore")))
+				live := ui.track(T(lang, "name_restore"), T(lang, "working"), "")
+				err := createRestorePoint()
+				live.stopClear()
+				if err != nil {
+					m := msg{"fail_restore", []any{errDetail(err)}}
+					rep.addFail(m)
+					ui.err(m.Text(lang))
+				} else {
+					m := msg{"done_restore", nil}
+					rep.addDone(m)
+					ui.ok(m.Text(lang))
+				}
 			}
 		case ActTemp:
 			ui.step(T(lang, "running", T(lang, "name_temp")))
-			recordClean(rep, ui, lang, tr("name_user_temp"), cleans(CleanTemp, userTempTargets()))
-			recordClean(rep, ui, lang, tr("name_win_temp"), cleans(CleanTemp, []string{windowsTemp()}))
+			recordClean(rep, ui, lang, tr("name_user_temp"), cleanPaths(ui, lang, "name_user_temp", CleanTemp, userTempTargets()))
+			recordClean(rep, ui, lang, tr("name_win_temp"), cleanPaths(ui, lang, "name_win_temp", CleanTemp, []string{windowsTemp()}))
 		case ActWU:
 			ui.step(T(lang, "running", T(lang, "name_wu")))
-			recordClean(rep, ui, lang, tr("name_wu"), cleans(CleanWU, []string{wuDownload()}))
+			recordClean(rep, ui, lang, tr("name_wu"), cleanPaths(ui, lang, "name_wu", CleanWU, []string{wuDownload()}))
 		case ActThumb:
 			ui.step(T(lang, "running", T(lang, "name_thumb")))
-			dir := thumbDir()
-			var st Stats
-			if dir == "" {
-				st = Stats{Missing: true}
-			} else {
-				st = CleanMatching(dir, thumbPatterns)
-			}
-			recordClean(rep, ui, lang, tr("name_thumb"), []Stats{st})
+			recordClean(rep, ui, lang, tr("name_thumb"), []Stats{cleanThumbs(ui, lang)})
 		case ActDO:
 			ui.step(T(lang, "running", T(lang, "name_do")))
-			recordClean(rep, ui, lang, tr("name_do"), cleans(CleanDO, []string{doCache()}))
+			recordClean(rep, ui, lang, tr("name_do"), cleanPaths(ui, lang, "name_do", CleanDO, []string{doCache()}))
 		case ActWER:
 			ui.step(T(lang, "running", T(lang, "name_wer")))
-			recordClean(rep, ui, lang, tr("name_wer"), cleans(CleanWER, werTargets()))
+			recordClean(rep, ui, lang, tr("name_wer"), cleanPaths(ui, lang, "name_wer", CleanWER, werTargets()))
 		case ActPower:
-			ui.step(T(lang, "running", T(lang, "name_power")))
-			guid, err := setHighPerformance()
-			if err != nil {
-				m := msg{"fail_power", []any{errDetail(err)}}
-				rep.addFail(m)
-				ui.err(m.Text(lang))
-			} else {
-				m := msg{"done_power", []any{guid}}
-				rep.addDone(m)
-				ui.ok(m.Text(lang))
+			{
+				ui.step(T(lang, "running", T(lang, "name_power")))
+				live := ui.track(T(lang, "name_power"), T(lang, "working"), "")
+				guid, err := setHighPerformance()
+				live.stopClear()
+				if err != nil {
+					m := msg{"fail_power", []any{errDetail(err)}}
+					rep.addFail(m)
+					ui.err(m.Text(lang))
+				} else {
+					m := msg{"done_power", []any{guid}}
+					rep.addDone(m)
+					ui.ok(m.Text(lang))
+				}
 			}
 		case ActSFC:
 			ui.step(T(lang, "running", T(lang, "name_sfc")))
 			ui.warn(T(lang, "long_running"))
-			code, tail, line := runSFC(ui.out, ui.termWidth()-1, scanPaint(ui))
+			code, tail, line := runSFC(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8)
 			recordCommand(rep, ui, lang, tr("name_sfc"), code, tail, false, line, T(lang, "done_sfc_line"))
 		case ActDISM:
 			ui.step(T(lang, "running", T(lang, "name_dism")))
 			ui.warn(T(lang, "long_running"))
-			code, tail, line := runDISM(ui.out, ui.termWidth()-1, scanPaint(ui))
+			code, tail, line := runDISM(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8)
 			recordCommand(rep, ui, lang, tr("name_dism"), code, tail, true, line, T(lang, "done_dism_line"))
 		case ActStartup:
 			runStartupUI(lang, ui, rep)
