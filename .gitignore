@@ -1,0 +1,5 @@
+*.exe
+*.syso
+*.test
+*.tmp
+.speeddisc-write-*

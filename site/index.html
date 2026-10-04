@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt-PT" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpeedDisc</title>
+  <meta name="description" content="SpeedDisc é um único ficheiro portátil para técnicos. Limpa lixo seguro no Windows e escreve um relatório curto. Sem percentagens inventadas.">
+  <link rel="canonical" href="https://speeddisc.danielpro.dev/">
+  <meta property="og:title" content="SpeedDisc">
+  <meta property="og:description" content="Um ficheiro portátil para manutenção do Windows. Relatório curto, código aberto, sem promessas vazias.">
+  <meta property="og:url" content="https://speeddisc.danielpro.dev/">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#f3f0e8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,650&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    (function () {
+      var t = localStorage.getItem("sd-theme");
+      if (t !== "light" && t !== "dark") {
+        t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", t === "dark" ? "#121614" : "#f3f0e8");
+    })();
+  </script>
+  <style>
+    :root {
+      --bg: #f3f0e8;
+      --ink: #1c1915;
+      --muted: #5e584e;
+      --line: #e3dacb;
+      --card: #fffcf7;
+      --accent: #0e6b62;
+      --on-accent: #f4fffc;
+      --wash: rgba(14, 107, 98, 0.09);
+      --soft: #e7f3f1;
+      --shadow: 0 1px 0 rgba(28, 25, 21, 0.04);
+      color-scheme: light;
+    }
+    html[data-theme="dark"] {
+      --bg: #121614;
+      --ink: #efeae2;
+      --muted: #b7b1a6;
+      --line: #2c3531;
+      --card: #1b221f;
+      --accent: #8fd4cb;
+      --on-accent: #10211f;
+      --wash: rgba(143, 212, 203, 0.1);
+      --soft: #1a2c29;
+      --shadow: none;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Outfit, "Segoe UI", sans-serif;
+      font-size: 1.05rem;
+      line-height: 1.6;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 420px at 8% -10%, var(--wash), transparent 70%),
+        var(--bg);
+    }
+    a { color: var(--accent); }
+    a:hover { text-decoration: none; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .wrap { width: min(1080px, calc(100% - 2rem)); margin: 0 auto; }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      backdrop-filter: blur(10px);
+      background: color-mix(in srgb, var(--bg) 86%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .bar {
+      display: flex;
+      align-items: center;
+      gap: 1rem 1.5rem;
+      min-height: 4rem;
+      flex-wrap: wrap;
+      padding: 0.6rem 0;
+    }
+    .word {
+      font-family: Fraunces, Georgia, serif;
+      font-weight: 650;
+      font-size: 1.35rem;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    nav { display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; }
+    nav a { color: var(--muted); text-decoration: none; font-weight: 500; }
+    nav a:hover { color: var(--ink); }
+    .tools { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+    .seg, .iconbtn {
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: 999px;
+    }
+    .seg { display: flex; padding: 0.15rem; }
+    .seg button, .iconbtn {
+      font: inherit;
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .seg button {
+      border: 0;
+      background: transparent;
+      border-radius: 999px;
+      min-width: 2.6rem;
+      min-height: 2.2rem;
+      font-weight: 600;
+    }
+    .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+    .iconbtn {
+      width: 2.6rem;
+      height: 2.6rem;
+      display: grid;
+      place-items: center;
+    }
+    .hero { padding: 4.2rem 0 2.2rem; }
+    .kicker {
+      display: inline-block;
+      margin: 0 0 0.8rem;
+      color: var(--accent);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.82rem;
+    }
+    h1 {
+      font-family: Fraunces, Georgia, serif;
+      font-weight: 560;
+      font-size: clamp(2.3rem, 5vw, 3.7rem);
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      margin: 0 0 1rem;
+      max-width: 16ch;
+    }
+    .lead { max-width: 42rem; color: var(--muted); font-size: 1.15rem; margin: 0 0 1.6rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: center; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      background: var(--accent);
+      color: var(--on-accent);
+      font-weight: 600;
+      border-radius: 999px;
+      padding: 0.75rem 1.15rem;
+      min-height: 2.8rem;
+    }
+    .btn.ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .fine { color: var(--muted); font-size: 0.92rem; max-width: 40rem; }
+    section { padding: 1.2rem 0 2rem; }
+    h2 {
+      font-family: Fraunces, Georgia, serif;
+      font-weight: 560;
+      font-size: clamp(1.7rem, 3vw, 2.2rem);
+      letter-spacing: -0.03em;
+      margin: 0 0 0.6rem;
+    }
+    .sub { color: var(--muted); max-width: 40rem; margin-top: 0; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem; }
+    .card, .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+    .card { padding: 1.15rem 1.15rem 1.25rem; }
+    .card .num {
+      font-family: Fraunces, Georgia, serif;
+      color: var(--accent);
+      font-size: 1.2rem;
+    }
+    .card h3 { margin: 0.35rem 0 0.4rem; font-size: 1.15rem; }
+    .card p, .split li, .steps li { margin: 0; color: var(--muted); }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+    .panel { padding: 1.2rem 1.3rem 1.3rem; }
+    .panel h3 { margin: 0 0 0.7rem; display: flex; align-items: center; gap: 0.45rem; }
+    ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.55rem; }
+    ul.clean li { display: flex; gap: 0.55rem; align-items: flex-start; }
+    ul.clean svg, .card svg, .btn svg, .iconbtn svg { width: 1.15rem; height: 1.15rem; flex: none; }
+    .steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.8rem; }
+    .steps li { display: grid; grid-template-columns: auto 1fr; gap: 0.8rem; align-items: start; }
+    .n {
+      width: 1.8rem; height: 1.8rem; border-radius: 999px;
+      display: grid; place-items: center;
+      background: var(--soft); color: var(--accent); font-weight: 600;
+    }
+    .get {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 1rem;
+      align-items: center;
+      padding: 1.3rem;
+    }
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 1.4rem 0 2.4rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1.2rem;
+      justify-content: space-between;
+    }
+    footer a { color: var(--muted); }
+    @media (max-width: 800px) {
+      .grid, .split, .get { grid-template-columns: 1fr; }
+      .tools { margin-left: 0; }
+      .hero { padding-top: 2.6rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap bar">
+      <a class="word" href="#topo">SpeedDisc</a>
+      <nav>
+        <a href="#fazer" data-i18n="nav_what">O que faz</a>
+        <a href="#pacotes" data-i18n="nav_packages">Pacotes</a>
+        <a href="#limites" data-i18n="nav_limits">Limites</a>
+        <a href="#correr" data-i18n="nav_run">Como correr</a>
+        <a href="#obter" data-i18n="nav_get">Obter</a>
+      </nav>
+      <div class="tools">
+        <div class="seg" role="group" aria-label="Language">
+          <button type="button" id="btn-pt" data-set-lang="pt" aria-pressed="true">PT</button>
+          <button type="button" id="btn-en" data-set-lang="en" aria-pressed="false">EN</button>
+        </div>
+        <button class="iconbtn" id="theme" type="button" aria-label="Tema">
+          <i data-lucide="moon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="topo">
+    <div class="wrap hero">
+      <p class="kicker" data-i18n="kicker">Ferramenta de técnico</p>
+      <h1 data-i18n="hero_title">Menos ruído no Windows, sem promessas vazias.</h1>
+      <p class="lead" data-i18n="hero_lead">O SpeedDisc é um único ficheiro portátil. Limpa lixo seguro, pode correr o SFC e o DISM, e escreve um relatório curto do que encontrou, do que fez e do que falhou.</p>
+      <div class="actions">
+        <a class="btn" href="https://github.com/danielcodemoz/speeddisc/releases/download/v0.1.0/SpeedDisc.exe">
+          <i data-lucide="download"></i>
+          <span data-i18n="download">Descarregar SpeedDisc.exe</span>
+        </a>
+        <a class="btn ghost" href="https://github.com/danielcodemoz/speeddisc">
+          <i data-lucide="github"></i>
+          <span data-i18n="source">Código fonte</span>
+        </a>
+      </div>
+      <p class="fine" data-i18n="hero_note">Versão 0.1.0 · um executável · sem instalador · licença MIT · Windows de 64 bits.</p>
+    </div>
+
+    <section id="fazer">
+      <div class="wrap">
+        <h2 data-i18n="what_title">O que faz</h2>
+        <div class="grid">
+          <article class="card">
+            <i data-lucide="file"></i>
+            <h3 data-i18n="what_1t">Um ficheiro</h3>
+            <p data-i18n="what_1">Cabe numa pen. Duplo clique, o Windows pede administrador, e aparece um menu de consola. Não há assistente de instalação.</p>
+          </article>
+          <article class="card">
+            <i data-lucide="languages"></i>
+            <h3 data-i18n="what_2t">Português e English</h3>
+            <p data-i18n="what_2">O português europeu é a língua inicial. Dá para mudar no menu. O relatório segue a língua escolhida.</p>
+          </article>
+          <article class="card">
+            <i data-lucide="file-text"></i>
+            <h3 data-i18n="what_3t">Relatório curto</h3>
+            <p data-i18n="what_3">No fim fica um texto UTF-8 ao lado do programa: data, o que foi encontrado, o que foi feito e o que falhou.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="pacotes">
+      <div class="wrap">
+        <h2 data-i18n="pkg_title">Pacotes</h2>
+        <p class="sub" data-i18n="pkg_lead">Também dá para marcar ações uma a uma, com números separados por vírgulas. Os pacotes são atalhos.</p>
+        <div class="grid">
+          <article class="card">
+            <div class="num">01</div>
+            <h3 data-i18n="q_name">Rápido</h3>
+            <p data-i18n="q_body">Temporários, cache de transferências do Windows Update, miniaturas e plano de energia Alto desempenho.</p>
+          </article>
+          <article class="card">
+            <div class="num">02</div>
+            <h3 data-i18n="d_name">Profundo</h3>
+            <p data-i18n="d_body">O conjunto rápido, mais Delivery Optimization, relatórios de erros, SFC e DISM. Ponto de restauro se o Windows deixar. Não esvazia a Reciclagem.</p>
+          </article>
+          <article class="card">
+            <div class="num">03</div>
+            <h3 data-i18n="l_name">Só ver</h3>
+            <p data-i18n="l_body">Sistema, processador, memória, discos, arranque e uma estimativa dos temporários. Não altera nada.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 data-i18n="ind_title">À escolha</h2>
+        <p class="sub" data-i18n="ind_body">Temporários, cache do Windows Update (só a pasta Download), miniaturas, Delivery Optimization, plano Alto desempenho, relatórios de erros, SFC, DISM, ponto de restauro e informação do sistema. No arranque, lista as chaves Run e as pastas Startup e só desativa o que o técnico escolher.</p>
+      </div>
+    </section>
+
+    <section id="limites">
+      <div class="wrap">
+        <h2 data-i18n="no_title">O que não faz</h2>
+        <div class="split">
+          <div class="panel">
+            <h3><i data-lucide="shield"></i> <span data-i18n="no_h">De propósito</span></h3>
+            <ul class="clean">
+              <li><i data-lucide="minus"></i><span data-i18n="no_1">Não mostra percentagens de velocidade.</span></li>
+              <li><i data-lucide="minus"></i><span data-i18n="no_2">Não desativa serviços, incluindo o SysMain.</span></li>
+              <li><i data-lucide="minus"></i><span data-i18n="no_3">Não apaga a prefetch.</span></li>
+              <li><i data-lucide="minus"></i><span data-i18n="no_4">Não esvazia a Reciclagem.</span></li>
+              <li><i data-lucide="minus"></i><span data-i18n="no_5">Não desativa o arranque sozinho.</span></li>
+              <li><i data-lucide="minus"></i><span data-i18n="no_6">Não é um limpa-registo.</span></li>
+              <li><i data-lucide="minus"></i><span data-i18n="no_7">Não instala nada e não pede conta.</span></li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3><i data-lucide="eye"></i> <span data-i18n="open_h">Aberto</span></h3>
+            <p data-i18n="open_p">O código está no GitHub, licença MIT. Dá para ler o que cada ação apaga antes de o correr num computador de cliente. O executável publicado é o mesmo programa, compilado para Windows de 64 bits.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="correr">
+      <div class="wrap">
+        <h2 data-i18n="run_title">Como correr</h2>
+        <ol class="steps">
+          <li><span class="n">1</span><span data-i18n="step1">Copie o SpeedDisc.exe para o computador ou para uma pen USB.</span></li>
+          <li><span class="n">2</span><span data-i18n="step2">Duplo clique. O Windows pede administrador antes do menu.</span></li>
+          <li><span class="n">3</span><span data-i18n="step3">Escolha um pacote ou vários números. Leia o relatório .txt que fica ao lado do programa.</span></li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="obter">
+      <div class="wrap">
+        <div class="card get">
+          <div>
+            <h2 data-i18n="get_title">Obter o ficheiro</h2>
+            <p class="sub" data-i18n="get_lead">SpeedDisc.exe, versão 0.1.0. Se a transferência direta falhar, a página de versões tem o mesmo ficheiro.</p>
+            <div class="actions">
+              <a class="btn" href="https://github.com/danielcodemoz/speeddisc/releases/download/v0.1.0/SpeedDisc.exe">
+                <i data-lucide="download"></i>
+                <span data-i18n="download">Descarregar SpeedDisc.exe</span>
+              </a>
+              <a class="btn ghost" href="https://github.com/danielcodemoz/speeddisc/releases">
+                <span data-i18n="releases">Todas as versões</span>
+              </a>
+            </div>
+          </div>
+          <p class="fine" data-i18n="smartscreen">O ficheiro não está assinado. O SmartScreen pode pedir confirmação. Não é um instalador: é um programa de consola de código aberto.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="wrap">
+    <footer>
+      <span data-i18n="foot">Daniel Marcos · MIT · 2026</span>
+      <span>
+        <a href="https://github.com/danielcodemoz/speeddisc">GitHub</a>
+        ·
+        <a href="https://speeddisc.danielpro.dev/">speeddisc.danielpro.dev</a>
+      </span>
+    </footer>
+  </div>
+
+  <script src="https://unpkg.com/lucide@0.511.0/dist/umd/lucide.min.js"></script>
+  <script>
+    var en = {
+      nav_what: "What it does",
+      nav_packages: "Packages",
+      nav_limits: "Limits",
+      nav_run: "How to run",
+      nav_get: "Get it",
+      kicker: "A technician's tool",
+      hero_title: "Less noise on Windows, no empty promises.",
+      hero_lead: "SpeedDisc is one portable file. It clears safe junk, can run SFC and DISM, and writes a short report of what it found, what it did, and what failed.",
+      download: "Download SpeedDisc.exe",
+      source: "Source code",
+      hero_note: "Version 0.1.0 · one executable · no installer · MIT license · 64-bit Windows.",
+      what_title: "What it does",
+      what_1t: "One file",
+      what_1: "It fits on a USB stick. Double-click, Windows asks for administrator, and a console menu opens. There is no setup wizard.",
+      what_2t: "Portuguese and English",
+      what_2: "European Portuguese is the starting language. You can switch it in the menu. The report follows the language you chose.",
+      what_3t: "A short report",
+      what_3: "It leaves a UTF-8 text file next to the program: the date, what was found, what was done, and what failed.",
+      pkg_title: "Packages",
+      pkg_lead: "You can also pick actions one by one, with comma-separated numbers. Packages are shortcuts.",
+      q_name: "Quick",
+      q_body: "Temp files, the Windows Update download cache, thumbnails, and the High performance power plan.",
+      d_name: "Deep",
+      d_body: "The quick set, plus Delivery Optimization, error reports, SFC and DISM. A restore point when Windows allows it. Does not empty the Recycle Bin.",
+      l_name: "Look only",
+      l_body: "OS, processor, memory, disks, startup, and a temp-size estimate. Changes nothing.",
+      ind_title: "Or pick the pieces",
+      ind_body: "Temp files, the Windows Update cache (the Download folder only), thumbnails, Delivery Optimization, the High performance plan, error reports, SFC, DISM, a restore point, and system information. Startup lists Run keys and Startup folders and disables only what the technician picks.",
+      no_title: "What it does not do",
+      no_h: "On purpose",
+      no_1: "It does not show speed percentages.",
+      no_2: "It does not disable services, including SysMain.",
+      no_3: "It does not delete prefetch.",
+      no_4: "It does not empty the Recycle Bin.",
+      no_5: "It does not disable startup items on its own.",
+      no_6: "It is not a registry cleaner.",
+      no_7: "It installs nothing and asks for no account.",
+      open_h: "Open",
+      open_p: "The source is on GitHub under the MIT license. You can read what each action deletes before running it on a client's PC. The published executable is that same program, built for 64-bit Windows.",
+      run_title: "How to run",
+      step1: "Copy SpeedDisc.exe to the computer or to a USB stick.",
+      step2: "Double-click. Windows asks for administrator before the menu.",
+      step3: "Choose a package or several numbers. Read the .txt report left next to the program.",
+      get_title: "Get the file",
+      get_lead: "SpeedDisc.exe, version 0.1.0. If the direct download fails, the releases page has the same file.",
+      releases: "All releases",
+      smartscreen: "The file is unsigned. SmartScreen may ask you to confirm. It is not an installer: it is an open-source console program.",
+      foot: "Daniel Marcos · MIT · 2026",
+      theme: "Theme",
+      tema: "Tema"
+    };
+
+    function initialLang() {
+      var saved = localStorage.getItem("sd-lang");
+      if (saved === "pt" || saved === "en") return saved;
+      var n = (navigator.language || "").toLowerCase();
+      if (n.indexOf("en") === 0) return "en";
+      return "pt";
+    }
+
+    function applyLang(lang) {
+      document.documentElement.lang = lang === "en" ? "en" : "pt-PT";
+      document.documentElement.dataset.lang = lang;
+      document.querySelectorAll("[data-i18n]").forEach(function (el) {
+        if (!el.dataset.pt) el.dataset.pt = el.textContent.trim();
+        var key = el.getAttribute("data-i18n");
+        el.textContent = lang === "en" && en[key] ? en[key] : el.dataset.pt;
+      });
+      document.getElementById("btn-pt").setAttribute("aria-pressed", lang === "pt" ? "true" : "false");
+      document.getElementById("btn-en").setAttribute("aria-pressed", lang === "en" ? "true" : "false");
+      document.getElementById("theme").setAttribute("aria-label", lang === "en" ? en.theme : en.tema);
+      localStorage.setItem("sd-lang", lang);
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("sd-theme", theme);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", theme === "dark" ? "#121614" : "#f3f0e8");
+      var icon = document.querySelector("#theme i");
+      if (icon) icon.setAttribute("data-lucide", theme === "dark" ? "sun" : "moon");
+      if (window.lucide) lucide.createIcons();
+    }
+
+    document.querySelectorAll("[data-set-lang]").forEach(function (btn) {
+      btn.addEventListener("click", function () { applyLang(btn.getAttribute("data-set-lang")); });
+    });
+    document.getElementById("theme").addEventListener("click", function () {
+      var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      applyTheme(next);
+    });
+
+    applyLang(initialLang());
+    applyTheme(document.documentElement.getAttribute("data-theme") || "light");
+  </script>
+</body>
+</html>
