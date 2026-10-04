@@ -69,7 +69,7 @@ go build -trimpath -ldflags "-s -w" -o SpeedDisc.exe .
 python verify_pe.py SpeedDisc.exe
 ```
 
-O GitHub Actions (`.github/workflows/build.yml`) faz este build e publica `SpeedDisc.exe` como artefacto.
+Um workflow de GitHub Actions pode chamar `./build.sh` e publicar `SpeedDisc.exe` como artefacto. O ficheiro previsto é `.github/workflows/build.yml`.
 
 A pasta `site/` é a página estática para https://speeddisc.danielpro.dev. Não faz parte do executável.
 
@@ -150,7 +150,7 @@ go build -trimpath -ldflags "-s -w" -o SpeedDisc.exe .
 python verify_pe.py SpeedDisc.exe
 ```
 
-GitHub Actions (`.github/workflows/build.yml`) runs this build and uploads `SpeedDisc.exe` as an artifact.
+A GitHub Actions workflow can call `./build.sh` and upload `SpeedDisc.exe` as an artifact. The intended file is `.github/workflows/build.yml`.
 
 The `site/` folder is the static page for https://speeddisc.danielpro.dev. It is not part of the executable.
 
