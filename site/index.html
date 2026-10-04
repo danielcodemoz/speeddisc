@@ -124,7 +124,38 @@
       display: grid;
       place-items: center;
     }
-    .hero { padding: 4.2rem 0 2.2rem; }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
+      gap: clamp(2rem, 5vw, 4.5rem);
+      align-items: center;
+      padding: 4.2rem 0 2.2rem;
+    }
+    .hero-copy { min-width: 0; }
+    .hero-shot {
+      margin: 0;
+      padding: clamp(0.7rem, 1.6vw, 1rem);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: #202321;
+      box-shadow: 0 18px 45px rgba(28, 25, 21, 0.16);
+    }
+    .hero-shot img {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: min(36rem, 66vh);
+      object-fit: contain;
+      object-position: top center;
+      border-radius: 12px;
+      background: #0b0d0c;
+    }
+    .hero-shot figcaption {
+      margin: 0.7rem 0.2rem 0.1rem;
+      color: #e8ebe8;
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
     .kicker {
       display: inline-block;
       margin: 0 0 0.8rem;
@@ -224,7 +255,8 @@
     @media (max-width: 800px) {
       .grid, .grid.packs, .split, .get { grid-template-columns: 1fr; }
       .tools { margin-left: 0; }
-      .hero { padding-top: 2.6rem; }
+      .hero { grid-template-columns: 1fr; padding-top: 2.6rem; }
+      .hero-shot { max-width: 38rem; }
     }
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
@@ -256,20 +288,26 @@
 
   <main id="topo">
     <div class="wrap hero">
-      <p class="kicker" data-i18n="kicker">Ferramenta de técnico</p>
-      <h1 data-i18n="hero_title">Menos ruído no Windows, sem promessas vazias.</h1>
-      <p class="lead" data-i18n="hero_lead">O SpeedDisc é um único ficheiro portátil. Limpa lixo seguro, pode correr o SFC e o DISM, e escreve um relatório curto do que encontrou, do que fez e do que falhou.</p>
-      <div class="actions">
-        <a class="btn" href="https://github.com/danielcodemoz/speeddisc/releases/download/v0.2.0/SpeedDisc.exe">
-          <i data-lucide="download"></i>
-          <span data-i18n="download">Descarregar SpeedDisc.exe</span>
-        </a>
-        <a class="btn ghost" href="https://github.com/danielcodemoz/speeddisc">
-          <i data-lucide="github"></i>
-          <span data-i18n="source">Código fonte</span>
-        </a>
+      <div class="hero-copy">
+        <p class="kicker" data-i18n="kicker">Ferramenta de técnico</p>
+        <h1 data-i18n="hero_title">Menos ruído no Windows, sem promessas vazias.</h1>
+        <p class="lead" data-i18n="hero_lead">O SpeedDisc é um único ficheiro portátil. Limpa lixo seguro, pode correr o SFC e o DISM, e escreve um relatório curto do que encontrou, do que fez e do que falhou.</p>
+        <div class="actions">
+          <a class="btn" href="https://github.com/danielcodemoz/speeddisc/releases/download/v0.2.0/SpeedDisc.exe">
+            <i data-lucide="download"></i>
+            <span data-i18n="download">Descarregar SpeedDisc.exe</span>
+          </a>
+          <a class="btn ghost" href="https://github.com/danielcodemoz/speeddisc">
+            <i data-lucide="github"></i>
+            <span data-i18n="source">Código fonte</span>
+          </a>
+        </div>
+        <p class="fine" data-i18n="hero_note">Versão 0.2.0 · um executável · sem instalador · licença MIT · Windows de 64 bits.</p>
       </div>
-      <p class="fine" data-i18n="hero_note">Versão 0.2.0 · um executável · sem instalador · licença MIT · Windows de 64 bits.</p>
+      <figure class="hero-shot">
+        <img src="/assets/speeddisc-console.png" width="1165" height="1517" alt="Ecrã da consola do SpeedDisc em português" data-i18n-alt="hero_image_alt">
+        <figcaption data-i18n="hero_caption">A consola mostra os pacotes e as ações disponíveis, antes de escolher o que executar.</figcaption>
+      </figure>
     </div>
 
     <section id="fazer">
@@ -416,6 +454,8 @@
         download: "Descarregar SpeedDisc.exe",
         source: "Código fonte",
         hero_note: "Versão 0.2.0 · um executável · sem instalador · licença MIT · Windows de 64 bits.",
+        hero_image_alt: "Ecrã da consola do SpeedDisc em português",
+        hero_caption: "A consola mostra os pacotes e as ações disponíveis, antes de escolher o que executar.",
         what_title: "O que faz",
         what_1t: "Um ficheiro",
         what_1: "Cabe numa pen. Duplo clique, o Windows pede administrador, e aparece um menu de consola. Não há assistente de instalação.",
@@ -471,6 +511,8 @@
         download: "Download SpeedDisc.exe",
         source: "Source code",
         hero_note: "Version 0.2.0 · one executable · no installer · MIT license · 64-bit Windows.",
+        hero_image_alt: "SpeedDisc console screen in Portuguese",
+        hero_caption: "The console shows the available packages and actions before you choose what to run.",
         what_title: "What it does",
         what_1t: "One file",
         what_1: "It fits on a USB stick. Double-click, Windows asks for administrator, and a console menu opens. There is no setup wizard.",
@@ -532,6 +574,10 @@
       document.querySelectorAll("[data-i18n]").forEach(function (el) {
         var key = el.getAttribute("data-i18n");
         if (table[key]) el.textContent = table[key];
+      });
+      document.querySelectorAll("[data-i18n-alt]").forEach(function (el) {
+        var key = el.getAttribute("data-i18n-alt");
+        if (table[key]) el.setAttribute("alt", table[key]);
       });
       document.getElementById("btn-pt").setAttribute("aria-pressed", lang === "pt" ? "true" : "false");
       document.getElementById("btn-en").setAttribute("aria-pressed", lang === "en" ? "true" : "false");
