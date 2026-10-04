@@ -5,34 +5,13 @@ package main
 import (
 	"errors"
 	"io"
-	"os"
 	"os/exec"
+
 	"regexp"
 	"strings"
-	"sync"
+
+	"golang.org/x/sys/windows"
 )
-
-type tailBuf struct {
-	mu  sync.Mutex
-	b   []byte
-	max int
-}
-
-func (t *tailBuf) Write(p []byte) (int, error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	t.b = append(t.b, p...)
-	if t.max > 0 && len(t.b) > t.max {
-		t.b = append([]byte(nil), t.b[len(t.b)-t.max:]...)
-	}
-	return len(p), nil
-}
-
-func (t *tailBuf) String() string {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return string(t.b)
-}
 
 func exitCode(err error) int {
 	if err == nil {
@@ -45,25 +24,35 @@ func exitCode(err error) int {
 	return -1
 }
 
+// withoutParentConsole keeps helper tools off this console.
+// Inheriting it lets PowerShell, SFC, and DISM resize the buffer, which makes Windows shrink the font.
+func withoutParentConsole(cmd *exec.Cmd) {
+	cmd.SysProcAttr = &windows.SysProcAttr{CreationFlags: windows.DETACHED_PROCESS}
+}
+
 func runCapture(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = nil
+	withoutParentConsole(cmd)
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }
 
-func runLive(name string, args ...string) (int, string) {
+func runScan(out io.Writer, label string, max int, paint func(string) string, name string, args ...string) (int, string, *scanLine) {
+	line := newScanLine(out, label, max, paint)
+	filt := newPercentFilter(line)
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = nil
-	tb := &tailBuf{max: 6000}
-	cmd.Stdout = io.MultiWriter(os.Stdout, tb)
-	cmd.Stderr = io.MultiWriter(os.Stderr, tb)
+	withoutParentConsole(cmd)
+	cmd.Stdout = filt
+	cmd.Stderr = filt
 	err := cmd.Run()
-	tail := clip(tb.String(), 240)
+	filt.flush()
+	tail := clip(filt.rawText(), 240)
 	if tail == "" && err != nil {
 		tail = clip(err.Error(), 240)
 	}
-	return exitCode(err), tail
+	return exitCode(err), tail, line
 }
 
 var guidRe = regexp.MustCompile(`(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
@@ -134,10 +123,10 @@ func createRestorePoint() error {
 	return nil
 }
 
-func runSFC() (int, string) {
-	return runLive(sysExe("sfc.exe"), "/scannow")
+func runSFC(out io.Writer, max int, paint func(string) string) (int, string, *scanLine) {
+	return runScan(out, "SFC", max, paint, sysExe("sfc.exe"), "/scannow")
 }
 
-func runDISM() (int, string) {
-	return runLive(sysExe("dism.exe"), "/Online", "/Cleanup-Image", "/RestoreHealth")
+func runDISM(out io.Writer, max int, paint func(string) string) (int, string, *scanLine) {
+	return runScan(out, "DISM", max, paint, sysExe("dism.exe"), "/Online", "/Cleanup-Image", "/RestoreHealth")
 }

@@ -55,7 +55,7 @@ func recordClean(rep *Report, ui *UI, lang Lang, name tr, list []Stats) {
 	}
 }
 
-func recordCommand(rep *Report, ui *UI, lang Lang, name tr, code int, tail string, rebootOK bool) {
+func recordCommand(rep *Report, ui *UI, lang Lang, name tr, code int, tail string, rebootOK bool, line *scanLine, doneLine string) {
 	if code == 0 || (rebootOK && code == 3010) {
 		key := "done_cmd"
 		if code == 3010 {
@@ -63,7 +63,12 @@ func recordCommand(rep *Report, ui *UI, lang Lang, name tr, code int, tail strin
 		}
 		m := msg{key, []any{name, code}}
 		rep.addDone(m)
-		ui.ok(m.Text(lang))
+		final := doneLine
+		if code == 3010 {
+			final = m.Text(lang)
+		}
+		line.paint = func(s string) string { return ui.paint(ansiGreen, s) }
+		line.finish(fitConsole(ui, final))
 		return
 	}
 	var detail any
@@ -74,7 +79,24 @@ func recordCommand(rep *Report, ui *UI, lang Lang, name tr, code int, tail strin
 	}
 	m := msg{"fail_cmd", []any{name, code, detail}}
 	rep.addFail(m)
-	ui.err(m.Text(lang))
+	line.paint = func(s string) string { return ui.paint(ansiRed, s) }
+	line.finish(fitConsole(ui, m.Text(lang)))
+}
+
+func fitConsole(ui *UI, s string) string {
+	text := "  " + s
+	w := ui.termWidth() - 1
+	if w < 1 {
+		w = 1
+	}
+	if runeLen(text) > w {
+		return clip(text, w)
+	}
+	return text
+}
+
+func scanPaint(ui *UI) func(string) string {
+	return func(s string) string { return ui.paint(ansiBoldCyan, s) }
 }
 
 func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
@@ -137,13 +159,13 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 		case ActSFC:
 			ui.step(T(lang, "running", T(lang, "name_sfc")))
 			ui.warn(T(lang, "long_running"))
-			code, tail := runSFC()
-			recordCommand(rep, ui, lang, tr("name_sfc"), code, tail, false)
+			code, tail, line := runSFC(ui.out, ui.termWidth()-1, scanPaint(ui))
+			recordCommand(rep, ui, lang, tr("name_sfc"), code, tail, false, line, T(lang, "done_sfc_line"))
 		case ActDISM:
 			ui.step(T(lang, "running", T(lang, "name_dism")))
 			ui.warn(T(lang, "long_running"))
-			code, tail := runDISM()
-			recordCommand(rep, ui, lang, tr("name_dism"), code, tail, true)
+			code, tail, line := runDISM(ui.out, ui.termWidth()-1, scanPaint(ui))
+			recordCommand(rep, ui, lang, tr("name_dism"), code, tail, true, line, T(lang, "done_dism_line"))
 		case ActStartup:
 			runStartupUI(lang, ui, rep)
 		}
@@ -156,7 +178,7 @@ func runStartupUI(lang Lang, ui *UI, rep *Report) {
 	ui.step(T(lang, "running", T(lang, "name_startup")))
 	entries, warns := listStartup()
 	for _, w := range warns {
-		m := msg{"fail_info", []any{tr("name_startup"), clip(w, 180)}}
+		m := msg{"fail_info", []any{tr("name_startup"), clip(w, ui.textWidth())}}
 		rep.addFail(m)
 		ui.warn(m.Text(lang))
 	}
@@ -172,13 +194,13 @@ func runStartupUI(lang Lang, ui *UI, rep *Report) {
 		if !e.CanDisable {
 			mark = "  " + T(lang, "not_text_value")
 		}
-		fmt.Fprintf(ui.out, "  %3d  %s%s\n", i+1, e.Name, mark)
-		fmt.Fprintf(ui.out, "       %s\n", clip(e.Where, 100))
+		ui.rawWrap(fmt.Sprintf("  %3d  %s%s", i+1, e.Name, mark))
+		ui.rawWrap("       " + e.Where)
 		cmd := e.Command
 		if cmd == "" {
 			cmd = T(lang, "not_text_value")
 		}
-		fmt.Fprintf(ui.out, "       %s\n", clip(cmd, 100))
+		ui.rawWrap("       " + cmd)
 	}
 	fmt.Fprintln(ui.out)
 	ui.info(T(lang, "startup_pick"))
@@ -209,9 +231,10 @@ func runStartupUI(lang Lang, ui *UI, rep *Report) {
 	fmt.Fprintln(ui.out)
 	for _, i := range idxs {
 		e := entries[i]
-		fmt.Fprintf(ui.out, "  %s\n", e.Name)
-		fmt.Fprintf(ui.out, "  %s\n", clip(e.Where, 120))
-		fmt.Fprintf(ui.out, "  %s\n\n", clip(e.Command, 180))
+		ui.rawWrap("  " + e.Name)
+		ui.rawWrap("  " + e.Where)
+		ui.rawWrap("  " + e.Command)
+		fmt.Fprintln(ui.out)
 	}
 	if !isYes(ui.Ask("  " + T(lang, "startup_confirm"))) {
 		ui.warn(T(lang, "cancelled"))

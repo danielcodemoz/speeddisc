@@ -142,11 +142,13 @@ var text = map[string][2]string{
 	"bye":     {"Até já.", "Done."},
 	"running": {"A executar: %s", "Running: %s"},
 	"long_running": {
-		"Isto pode demorar. A saída do Windows aparece abaixo.",
-		"This can take a long time. Windows output follows.",
+		"Isto pode demorar.",
+		"This can take a long time.",
 	},
-	"report_at":   {"Relatório: %s", "Report: %s"},
-	"report_fail": {"Não foi possível escrever o relatório: %s", "Could not write the report: %s"},
+	"done_sfc_line":  {"SFC concluído", "SFC finished"},
+	"done_dism_line": {"DISM concluído", "DISM finished"},
+	"report_at":      {"Relatório: %s", "Report: %s"},
+	"report_fail":    {"Não foi possível escrever o relatório: %s", "Could not write the report: %s"},
 	"startup_empty": {
 		"Não foram encontradas entradas de arranque.",
 		"No startup entries were found.",

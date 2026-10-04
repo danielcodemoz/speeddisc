@@ -21,8 +21,8 @@ func padRight(s string, n int) string {
 }
 
 func wrap(s string, width int) []string {
-	if width < 8 {
-		width = 8
+	if width < 1 {
+		width = 1
 	}
 	words := strings.Fields(s)
 	if len(words) == 0 {
@@ -30,22 +30,52 @@ func wrap(s string, width int) []string {
 	}
 	var lines []string
 	cur := ""
-	for _, w := range words {
-		if cur == "" {
-			cur = w
-			continue
+	flush := func() {
+		if cur != "" {
+			lines = append(lines, cur)
+			cur = ""
 		}
-		if runeLen(cur)+1+runeLen(w) <= width {
-			cur += " " + w
-			continue
-		}
-		lines = append(lines, cur)
-		cur = w
 	}
-	if cur != "" {
-		lines = append(lines, cur)
+	for _, w := range words {
+		parts := breakToken(w, width)
+		for pi, part := range parts {
+			if pi > 0 {
+				flush()
+			}
+			if cur == "" {
+				cur = part
+				continue
+			}
+			if runeLen(cur)+1+runeLen(part) <= width {
+				cur += " " + part
+				continue
+			}
+			flush()
+			cur = part
+		}
+	}
+	flush()
+	if len(lines) == 0 {
+		return []string{""}
 	}
 	return lines
+}
+
+func breakToken(s string, width int) []string {
+	r := []rune(s)
+	if len(r) <= width {
+		return []string{s}
+	}
+	var out []string
+	for len(r) > 0 {
+		n := width
+		if n > len(r) {
+			n = len(r)
+		}
+		out = append(out, string(r[:n]))
+		r = r[n:]
+	}
+	return out
 }
 
 func clip(s string, n int) string {

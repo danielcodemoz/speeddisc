@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-const boxInner = 114
-
 const (
 	ansiReset    = "\x1b[0m"
 	ansiCyan     = "\x1b[36m"
@@ -23,6 +21,8 @@ type UI struct {
 	in    *bufio.Reader
 	color bool
 	utf8  bool
+	// cols is an optional visible width in columns. Zero means the real console width.
+	cols int
 }
 
 func NewUI(out io.Writer, in io.Reader) *UI {
@@ -45,16 +45,65 @@ func (u *UI) Ask(prompt string) string {
 	return strings.TrimSpace(line)
 }
 
-func (u *UI) info(s string) { fmt.Fprintln(u.out, "  "+s) }
-func (u *UI) ok(s string)   { fmt.Fprintln(u.out, u.paint(ansiGreen, "  "+s)) }
-func (u *UI) warn(s string) { fmt.Fprintln(u.out, u.paint(ansiYellow, "  "+s)) }
-func (u *UI) err(s string)  { fmt.Fprintln(u.out, u.paint(ansiRed, "  "+s)) }
-func (u *UI) step(s string) { fmt.Fprintln(u.out, u.paint(ansiBoldCyan, "  "+s)) }
+func (u *UI) info(s string) { u.emit("", s) }
+func (u *UI) ok(s string)   { u.emit(ansiGreen, s) }
+func (u *UI) warn(s string) { u.emit(ansiYellow, s) }
+func (u *UI) err(s string)  { u.emit(ansiRed, s) }
+func (u *UI) step(s string) { u.emit(ansiBoldCyan, s) }
+
+func (u *UI) emit(code, s string) {
+	for _, line := range wrap(s, u.textWidth()) {
+		fmt.Fprintln(u.out, u.paint(code, "  "+line))
+	}
+}
 
 func (u *UI) paragraph(s string) {
-	for _, line := range wrap(s, 76) {
-		fmt.Fprintln(u.out, "  "+line)
+	u.emit("", s)
+}
+
+// rawWrap prints s without going past the visible window.
+func (u *UI) rawWrap(s string) {
+	limit := u.termWidth() - 1
+	if limit < 1 {
+		limit = 1
 	}
+	for _, line := range wrap(s, limit) {
+		fmt.Fprintln(u.out, line)
+	}
+}
+
+// termWidth is the visible console width in columns.
+// It is never used to resize the buffer, the window, or the font.
+func (u *UI) termWidth() int {
+	if u.cols > 0 {
+		return u.cols
+	}
+	if n := consoleColumns(); n > 0 {
+		return n
+	}
+	return 80
+}
+
+// textWidth is how many runes of text fit after the two-space indent,
+// leaving the last column unused so a line cannot widen the buffer.
+func (u *UI) textWidth() int {
+	w := u.termWidth() - 3
+	if w < 1 {
+		return 1
+	}
+	return w
+}
+
+func (u *UI) boxInner() int {
+	total := u.termWidth() - 1
+	if total < 4 {
+		total = u.termWidth()
+	}
+	inner := total - 2
+	if inner < 1 {
+		return 1
+	}
+	return inner
 }
 
 func (u *UI) Banner(lang Lang) {
@@ -64,15 +113,21 @@ func (u *UI) Banner(lang Lang) {
 	if !u.utf8 {
 		mark = "-"
 	}
-	fmt.Fprintf(u.out, "  v%s %s %s\n", version, mark, T(lang, "subtitle"))
-	fmt.Fprintln(u.out, "  "+T(lang, "lang_now"))
+	head := fmt.Sprintf("v%s %s %s", version, mark, T(lang, "subtitle"))
+	for _, line := range wrap(head, u.textWidth()) {
+		fmt.Fprintln(u.out, "  "+line)
+	}
+	for _, line := range wrap(T(lang, "lang_now"), u.textWidth()) {
+		fmt.Fprintln(u.out, "  "+line)
+	}
 }
 
 func (u *UI) Menu(lang Lang) {
 	fmt.Fprintln(u.out)
-	u.box(T(lang, "section_packages"), u.sectionColumns(lang, "pkg", 2))
+	inner := u.boxInner()
+	u.box(T(lang, "section_packages"), u.sectionColumns(lang, "pkg", columnsThatFit(inner, 2), inner))
 	fmt.Fprintln(u.out)
-	u.box(T(lang, "section_actions"), u.sectionColumns(lang, "act", 3))
+	u.box(T(lang, "section_actions"), u.sectionColumns(lang, "act", columnsThatFit(inner, 3), inner))
 	fmt.Fprintln(u.out)
 	fmt.Fprintf(u.out, "   L   %s\n", T(lang, "opt_lang"))
 	fmt.Fprintf(u.out, "   Q   %s\n", T(lang, "opt_quit"))
@@ -80,9 +135,29 @@ func (u *UI) Menu(lang Lang) {
 	u.info(T(lang, "menu_hint"))
 }
 
+// columnsThatFit picks one column on a narrow console, and two or three
+// only when each column still has room. It does not assume 114 or 120.
+func columnsThatFit(inner, want int) int {
+	if want < 1 {
+		want = 1
+	}
+	const minCol = 28
+	const gap = 2
+	best := 1
+	for c := 1; c <= want; c++ {
+		if c == 1 {
+			best = 1
+			continue
+		}
+		if inner >= c*minCol+(c-1)*gap {
+			best = c
+		}
+	}
+	return best
+}
+
 // sectionColumns lays items left to right, then down, inside the menu box.
-// Packages use two columns; actions use three. A 120-column console fits the box.
-func (u *UI) sectionColumns(lang Lang, section string, cols int) []string {
+func (u *UI) sectionColumns(lang Lang, section string, cols, inner int) []string {
 	var items []menuItem
 	for _, it := range menuCatalog() {
 		if it.section == section {
@@ -93,8 +168,8 @@ func (u *UI) sectionColumns(lang Lang, section string, cols int) []string {
 		cols = 1
 	}
 	gap := 2
-	base := (boxInner - gap*(cols-1)) / cols
-	extra := boxInner - (base*cols + gap*(cols-1))
+	base := (inner - gap*(cols-1)) / cols
+	extra := inner - (base*cols + gap*(cols-1))
 	widths := make([]int, cols)
 	for i := range widths {
 		widths[i] = base
@@ -139,8 +214,8 @@ func (u *UI) sectionColumns(lang Lang, section string, cols int) []string {
 }
 
 func itemBlock(lang Lang, it menuItem, width int) []string {
-	if width < 16 {
-		width = 16
+	if width < 8 {
+		width = 8
 	}
 	var lines []string
 	title := fmt.Sprintf("%2d  %s", it.num, T(lang, it.title))
@@ -156,8 +231,8 @@ func itemBlock(lang Lang, it menuItem, width int) []string {
 		}
 	}
 	descW := width - 4
-	if descW < 12 {
-		descW = 12
+	if descW < 4 {
+		descW = 4
 	}
 	for _, dl := range wrap(T(lang, it.desc), descW) {
 		lines = append(lines, "    "+dl)
@@ -166,22 +241,23 @@ func itemBlock(lang Lang, it menuItem, width int) []string {
 }
 
 func (u *UI) box(title string, lines []string) {
+	inner := u.boxInner()
 	horiz, vert, tl, tr, bl, br := "-", "|", "+", "+", "+", "+"
 	if u.utf8 {
 		horiz, vert, tl, tr, bl, br = "─", "│", "┌", "┐", "└", "┘"
 	}
 	label := " " + title + " "
-	topFill := boxInner - runeLen(label) - 1
+	topFill := inner - runeLen(label) - 1
 	if topFill < 1 {
-		label = padRight(label, boxInner-2)
+		label = padRight(label, inner-2)
 		topFill = 1
 	}
 	top := tl + horiz + label + strings.Repeat(horiz, topFill) + tr
 	fmt.Fprintln(u.out, u.paint(ansiCyan, top))
 	for _, line := range lines {
-		fmt.Fprintf(u.out, "%s%s%s\n", u.paint(ansiCyan, vert), padRight(line, boxInner), u.paint(ansiCyan, vert))
+		fmt.Fprintf(u.out, "%s%s%s\n", u.paint(ansiCyan, vert), padRight(line, inner), u.paint(ansiCyan, vert))
 	}
-	bottom := bl + strings.Repeat(horiz, boxInner) + br
+	bottom := bl + strings.Repeat(horiz, inner) + br
 	fmt.Fprintln(u.out, u.paint(ansiCyan, bottom))
 }
 

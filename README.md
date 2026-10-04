@@ -11,8 +11,9 @@ Licença: [MIT](LICENSE)
 ## O que faz
 
 - Pede administrador **antes** do menu, pelo manifesto `requireAdministrator` embutido no executável.
-- Menu de consola (não é uma janela gráfica nem um `.bat`), com título **SpeedDisc**, cor quando o terminal aceita ANSI, e texto simples se a cor falhar. Os pacotes ficam em duas colunas e as ações em três, para caber numa consola de cerca de 120 colunas sem uma lista vertical longa.
+- Menu de consola (não é uma janela gráfica nem um `.bat`), com título **SpeedDisc**, cor quando o terminal aceita ANSI, e texto simples se a cor falhar. As colunas seguem a largura da janela: uma se for estreita, duas ou três se for larga. O programa não muda o tamanho da letra nem encolhe a janela.
 - Português e English. A opção `L` muda o idioma do ecrã, dos avisos e do relatório.
+- O SFC e o DISM mostram uma só linha de progresso, em percentagem inteira, atualizada no lugar. No fim fica uma linha, por exemplo «SFC concluído».
 - Dá para escolher várias ações de uma vez (`5, 9, 14`) ou um pacote.
 
 Pacotes:
@@ -93,8 +94,9 @@ License: [MIT](LICENSE)
 ## What it does
 
 - Asks for administrator **before** the menu, through an embedded `requireAdministrator` manifest.
-- A console menu (not a GUI window and not a `.bat`), window title **SpeedDisc**, colour when the terminal accepts ANSI, and plain text if colour fails. Packages are shown in two columns and actions in three, so a typical 120-column console does not have to scroll a long single list.
+- A console menu (not a GUI window and not a `.bat`), window title **SpeedDisc**, colour when the terminal accepts ANSI, and plain text if colour fails. Columns follow the window width: one when it is narrow, two or three when it is wide. The program does not change the font size or shrink the window.
 - Portuguese and English. `L` switches the language of the screen, the prompts, and the report.
+- SFC and DISM show one progress line, in whole percents, updated in place. When the step ends, one line remains, for example “SFC finished”.
 - Several actions can be chosen at once (`5, 9, 14`), or a named package.
 
 Packages:
