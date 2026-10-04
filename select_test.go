@@ -16,13 +16,14 @@ func TestParseSelection(t *testing.T) {
 		{"1", quick, false},
 		{"2", deep, false},
 		{"3", []Action{ActInfo}, false},
-		{"4, 8", []Action{ActTemp, ActPower}, false},
-		{"1;4", quick, false},
-		{"14", []Action{ActInfo}, false},
-		{"2,13", append(append([]Action{}, deep...), ActStartup), false},
-		{"1,1,4", quick, false},
-		{"3,4", []Action{ActInfo, ActTemp}, false},
-		{"1 4 8", []Action{ActTemp, ActWU, ActThumb, ActPower}, false},
+		{"4", deep, false},
+		{"5, 9", []Action{ActTemp, ActPower}, false},
+		{"1;5", quick, false},
+		{"15", []Action{ActInfo}, false},
+		{"2,14", append(append([]Action{}, deep...), ActStartup), false},
+		{"1,1,5", quick, false},
+		{"3,5", []Action{ActInfo, ActTemp}, false},
+		{"1 5 9", []Action{ActTemp, ActWU, ActThumb, ActPower}, false},
 		{"", nil, true},
 		{"0", nil, true},
 		{"99", nil, true},
@@ -57,7 +58,7 @@ func TestMenuNumbersUnique(t *testing.T) {
 			t.Fatalf("incomplete item %d", it.num)
 		}
 	}
-	if len(seen) != 14 {
+	if len(seen) != 15 {
 		t.Fatalf("got %d items", len(seen))
 	}
 }
@@ -98,5 +99,19 @@ func TestParseIndexes(t *testing.T) {
 	}
 	if _, err := parseIndexes("6", 5); err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestFullPackage(t *testing.T) {
+	got, err := ParseSelection("4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Action{ActRestore, ActTemp, ActWU, ActThumb, ActDO, ActWER, ActPower, ActSFC, ActDISM}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("full = %v", got)
+	}
+	if Contains(got, ActStartup) || got[0] != ActRestore {
+		t.Fatalf("full = %v", got)
 	}
 }

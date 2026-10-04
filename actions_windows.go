@@ -20,10 +20,10 @@ func cleans(kind CleanKind, paths []string) []Stats {
 	return out
 }
 
-func foldStats(list []Stats) (removed int, freed int64, skipped int, present int, errs []string) {
+func foldStats(list []Stats) (removed int, freed int64, skipped int, present int, errs []error) {
 	for _, s := range list {
 		if s.Err != nil {
-			errs = append(errs, s.Err.Error())
+			errs = append(errs, s.Err)
 			continue
 		}
 		if s.Missing {
@@ -49,7 +49,7 @@ func recordClean(rep *Report, ui *UI, lang Lang, name tr, list []Stats) {
 		ui.warn(m.Text(lang))
 	}
 	for _, e := range errs {
-		m := msg{"fail_clean", []any{name, clip(e, 200)}}
+		m := msg{"fail_clean", []any{name, errDetail(e)}}
 		rep.addFail(m)
 		ui.err(m.Text(lang))
 	}
@@ -66,11 +66,13 @@ func recordCommand(rep *Report, ui *UI, lang Lang, name tr, code int, tail strin
 		ui.ok(m.Text(lang))
 		return
 	}
-	detail := tail
-	if detail == "" {
-		detail = "exit"
+	var detail any
+	if strings.TrimSpace(tail) == "" {
+		detail = tr("err_exit")
+	} else {
+		detail = clip(tail, 220)
 	}
-	m := msg{"fail_cmd", []any{name, code, clip(detail, 220)}}
+	m := msg{"fail_cmd", []any{name, code, detail}}
 	rep.addFail(m)
 	ui.err(m.Text(lang))
 }
@@ -89,7 +91,7 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 		case ActRestore:
 			ui.step(T(lang, "running", T(lang, "name_restore")))
 			if err := createRestorePoint(); err != nil {
-				m := msg{"fail_restore", []any{clip(err.Error(), 220)}}
+				m := msg{"fail_restore", []any{errDetail(err)}}
 				rep.addFail(m)
 				ui.err(m.Text(lang))
 			} else {
@@ -124,7 +126,7 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 			ui.step(T(lang, "running", T(lang, "name_power")))
 			guid, err := setHighPerformance()
 			if err != nil {
-				m := msg{"fail_power", []any{clip(err.Error(), 220)}}
+				m := msg{"fail_power", []any{errDetail(err)}}
 				rep.addFail(m)
 				ui.err(m.Text(lang))
 			} else {
@@ -172,7 +174,11 @@ func runStartupUI(lang Lang, ui *UI, rep *Report) {
 		}
 		fmt.Fprintf(ui.out, "  %3d  %s%s\n", i+1, e.Name, mark)
 		fmt.Fprintf(ui.out, "       %s\n", clip(e.Where, 100))
-		fmt.Fprintf(ui.out, "       %s\n", clip(e.Command, 100))
+		cmd := e.Command
+		if cmd == "" {
+			cmd = T(lang, "not_text_value")
+		}
+		fmt.Fprintf(ui.out, "       %s\n", clip(cmd, 100))
 	}
 	fmt.Fprintln(ui.out)
 	ui.info(T(lang, "startup_pick"))
@@ -224,7 +230,7 @@ func runStartupUI(lang Lang, ui *UI, rep *Report) {
 		if e.File != "" {
 			dest, err := disableStartupFile(e.File)
 			if err != nil {
-				m := msg{"fail_startup", []any{e.Name, clip(err.Error(), 180)}}
+				m := msg{"fail_startup", []any{e.Name, errDetail(err)}}
 				rep.addFail(m)
 				ui.err(m.Text(lang))
 				continue
@@ -243,7 +249,7 @@ func runStartupUI(lang Lang, ui *UI, rep *Report) {
 			case errors.Is(err, ErrValueChanged):
 				m = msg{"fail_startup_changed", []any{e.Name}}
 			default:
-				m = msg{"fail_startup", []any{e.Name, clip(err.Error(), 180)}}
+				m = msg{"fail_startup", []any{e.Name, errDetail(err)}}
 			}
 			rep.addFail(m)
 			ui.err(m.Text(lang))

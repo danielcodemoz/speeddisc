@@ -1,4 +1,9 @@
 {
+  "RT_GROUP_ICON": {
+    "APP": {
+      "0000": "speeddisc.ico"
+    }
+  },
   "RT_MANIFEST": {
     "#1": {
       "0409": "speeddisc.manifest"
@@ -8,29 +13,29 @@
     "#1": {
       "0000": {
         "fixed": {
-          "file_version": "0.1.0.0",
-          "product_version": "0.1.0.0"
+          "file_version": "0.2.0.0",
+          "product_version": "0.2.0.0"
         },
         "info": {
           "0409": {
             "CompanyName": "Daniel Marcos",
             "FileDescription": "SpeedDisc",
-            "FileVersion": "0.1.0.0",
+            "FileVersion": "0.2.0.0",
             "InternalName": "SpeedDisc",
             "LegalCopyright": "Copyright (c) 2026 Daniel Marcos",
             "OriginalFilename": "SpeedDisc.exe",
             "ProductName": "SpeedDisc",
-            "ProductVersion": "0.1.0"
+            "ProductVersion": "0.2.0"
           },
           "0816": {
             "CompanyName": "Daniel Marcos",
             "FileDescription": "SpeedDisc, manutenção portátil",
-            "FileVersion": "0.1.0.0",
+            "FileVersion": "0.2.0.0",
             "InternalName": "SpeedDisc",
             "LegalCopyright": "Copyright (c) 2026 Daniel Marcos",
             "OriginalFilename": "SpeedDisc.exe",
             "ProductName": "SpeedDisc",
-            "ProductVersion": "0.1.0"
+            "ProductVersion": "0.2.0"
           }
         }
       }

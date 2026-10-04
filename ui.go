@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const boxInner = 64
+const boxInner = 114
 
 const (
 	ansiReset    = "\x1b[0m"
@@ -70,9 +70,9 @@ func (u *UI) Banner(lang Lang) {
 
 func (u *UI) Menu(lang Lang) {
 	fmt.Fprintln(u.out)
-	u.box(T(lang, "section_packages"), u.itemLines(lang, "pkg"))
+	u.box(T(lang, "section_packages"), u.sectionColumns(lang, "pkg", 2))
 	fmt.Fprintln(u.out)
-	u.box(T(lang, "section_actions"), u.itemLines(lang, "act"))
+	u.box(T(lang, "section_actions"), u.sectionColumns(lang, "act", 3))
 	fmt.Fprintln(u.out)
 	fmt.Fprintf(u.out, "   L   %s\n", T(lang, "opt_lang"))
 	fmt.Fprintf(u.out, "   Q   %s\n", T(lang, "opt_quit"))
@@ -80,21 +80,87 @@ func (u *UI) Menu(lang Lang) {
 	u.info(T(lang, "menu_hint"))
 }
 
-func (u *UI) itemLines(lang Lang, section string) []string {
-	var lines []string
+// sectionColumns lays items left to right, then down, inside the menu box.
+// Packages use two columns; actions use three. A 120-column console fits the box.
+func (u *UI) sectionColumns(lang Lang, section string, cols int) []string {
+	var items []menuItem
 	for _, it := range menuCatalog() {
-		if it.section != section {
-			continue
+		if it.section == section {
+			items = append(items, it)
 		}
-		title := fmt.Sprintf(" %2d  %s", it.num, T(lang, it.title))
-		lines = append(lines, title)
-		for _, dl := range wrap(T(lang, it.desc), boxInner-6) {
-			lines = append(lines, "      "+dl)
-		}
-		lines = append(lines, "")
 	}
-	if len(lines) > 0 && lines[len(lines)-1] == "" {
-		lines = lines[:len(lines)-1]
+	if cols < 1 {
+		cols = 1
+	}
+	gap := 2
+	base := (boxInner - gap*(cols-1)) / cols
+	extra := boxInner - (base*cols + gap*(cols-1))
+	widths := make([]int, cols)
+	for i := range widths {
+		widths[i] = base
+		if i >= cols-extra {
+			widths[i]++
+		}
+	}
+	blocks := make([][]string, len(items))
+	for i, it := range items {
+		blocks[i] = itemBlock(lang, it, widths[i%cols])
+	}
+	rows := (len(blocks) + cols - 1) / cols
+	var lines []string
+	for r := 0; r < rows; r++ {
+		if r > 0 {
+			lines = append(lines, "")
+		}
+		maxH := 0
+		for c := 0; c < cols; c++ {
+			i := r*cols + c
+			if i < len(blocks) && len(blocks[i]) > maxH {
+				maxH = len(blocks[i])
+			}
+		}
+		for h := 0; h < maxH; h++ {
+			var b strings.Builder
+			for c := 0; c < cols; c++ {
+				if c > 0 {
+					b.WriteString(strings.Repeat(" ", gap))
+				}
+				i := r*cols + c
+				line := ""
+				if i < len(blocks) && h < len(blocks[i]) {
+					line = blocks[i][h]
+				}
+				b.WriteString(padRight(line, widths[c]))
+			}
+			lines = append(lines, b.String())
+		}
+	}
+	return lines
+}
+
+func itemBlock(lang Lang, it menuItem, width int) []string {
+	if width < 16 {
+		width = 16
+	}
+	var lines []string
+	title := fmt.Sprintf("%2d  %s", it.num, T(lang, it.title))
+	if runeLen(title) <= width {
+		lines = append(lines, title)
+	} else {
+		for i, tl := range wrap(title, width) {
+			if i == 0 {
+				lines = append(lines, tl)
+				continue
+			}
+			lines = append(lines, "    "+tl)
+		}
+	}
+	descW := width - 4
+	if descW < 12 {
+		descW = 12
+	}
+	for _, dl := range wrap(T(lang, it.desc), descW) {
+		lines = append(lines, "    "+dl)
 	}
 	return lines
 }
@@ -104,13 +170,13 @@ func (u *UI) box(title string, lines []string) {
 	if u.utf8 {
 		horiz, vert, tl, tr, bl, br = "─", "│", "┌", "┐", "└", "┘"
 	}
-	t := title
-	topFill := boxInner - runeLen(t) - 2
+	label := " " + title + " "
+	topFill := boxInner - runeLen(label) - 1
 	if topFill < 1 {
-		t = padRight(t, boxInner-3)
+		label = padRight(label, boxInner-2)
 		topFill = 1
 	}
-	top := tl + horiz + t + " " + strings.Repeat(horiz, topFill) + tr
+	top := tl + horiz + label + strings.Repeat(horiz, topFill) + tr
 	fmt.Fprintln(u.out, u.paint(ansiCyan, top))
 	for _, line := range lines {
 		fmt.Fprintf(u.out, "%s%s%s\n", u.paint(ansiCyan, vert), padRight(line, boxInner), u.paint(ansiCyan, vert))

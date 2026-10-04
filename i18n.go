@@ -21,8 +21,13 @@ var text = map[string][2]string{
 	},
 	"opt_deep": {"Pacote Profundo", "Deep package"},
 	"desc_deep": {
-		"O conjunto rápido, mais cache do Delivery Optimization e relatórios de erros, SFC e DISM. Cria um ponto de restauro se o Windows deixar. Não esvazia a Reciclagem.",
-		"The quick set, plus Delivery Optimization cache and Windows error reports, SFC and DISM. Creates a restore point when Windows allows it. Does not empty the Recycle Bin.",
+		"O conjunto rápido, mais cache do Delivery Optimization e relatórios de erros, SFC e DISM. Cria um ponto de restauro se o Windows deixar. Não desativa o arranque e não esvazia a Reciclagem.",
+		"The quick set, plus Delivery Optimization cache and Windows error reports, SFC and DISM. Creates a restore point when Windows allows it. Does not disable startup items and does not empty the Recycle Bin.",
+	},
+	"opt_full": {"Pacote completo", "Full package"},
+	"desc_full": {
+		"Temporários, cache de transferências do Windows Update, miniaturas, cache do Delivery Optimization, relatórios de erros, plano Alto desempenho, SFC e DISM. Cria primeiro um ponto de restauro, se o Windows deixar. Não desativa o arranque e não esvazia a Reciclagem.",
+		"Temp files, the Windows Update download cache, thumbnails, Delivery Optimization cache, error reports, the High performance power plan, SFC and DISM. Creates a restore point first when Windows allows it. Does not disable startup items and does not empty the Recycle Bin.",
 	},
 	"opt_look": {"Pacote Só ver", "Look only"},
 	"desc_look": {
@@ -76,7 +81,7 @@ var text = map[string][2]string{
 	},
 	"opt_startup": {"Arranque (escolher)", "Startup (pick)"},
 	"desc_startup": {
-		"Lista chaves Run (HKLM e HKCU) e pastas Startup. Só desativa o que escolher.",
+		"Lista chaves Run (HKLM e HKCU) e pastas de arranque. Só desativa o que escolher.",
 		"Lists Run keys (HKLM and HKCU) and Startup folders. Disables only what you pick.",
 	},
 	"opt_info": {"Informação do sistema", "System information"},
@@ -87,12 +92,12 @@ var text = map[string][2]string{
 	"opt_lang": {"English", "Português"},
 	"opt_quit": {"Sair", "Quit"},
 	"menu_hint": {
-		"Várias de uma vez, por exemplo 4, 8, 13",
-		"Several at once, for example 4, 8, 13",
+		"Várias de uma vez, por exemplo 5, 9, 14",
+		"Several at once, for example 5, 9, 14",
 	},
 	"bad_selection": {
-		"Escolha inválida. Use números do menu, separados por vírgulas. Exemplo: 1 ou 4, 8, 13.",
-		"Invalid choice. Use menu numbers, separated by commas. Example: 1 or 4, 8, 13.",
+		"Escolha inválida. Use números do menu, separados por vírgulas. Exemplo: 1 ou 5, 9, 14.",
+		"Invalid choice. Use menu numbers, separated by commas. Example: 1 or 5, 9, 14.",
 	},
 	"need_admin": {
 		"O SpeedDisc tem de correr como administrador. O Windows deve pedir elevação antes deste programa abrir. Se isso não aconteceu, feche e use Executar como administrador.",
@@ -225,7 +230,7 @@ var text = map[string][2]string{
 	"fail_info":      {"%s: %s", "%s: %s"},
 	"note_recycle":   {"A Reciclagem não foi esvaziada.", "The Recycle Bin was not emptied."},
 	"note_services":  {"Nenhum serviço do Windows foi desativado.", "No Windows service was disabled."},
-	"note_prefetch":  {"A prefetch não foi apagada.", "Prefetch was not deleted."},
+	"note_prefetch":  {"A pasta Prefetch não foi apagada.", "The Prefetch folder was not deleted."},
 	"note_sysmain":   {"O SysMain não foi alterado.", "SysMain was not changed."},
 	"name_user_temp": {"Temporários do utilizador", "User temp files"},
 	"name_win_temp":  {"Temporários do Windows", "Windows temp files"},
@@ -244,6 +249,50 @@ var text = map[string][2]string{
 	"name_temp":      {"Temporários", "Temporary files"},
 	"name_disks":     {"Discos", "Disks"},
 	"not_text_value": {"(valor não texto)", "(not a text value)"},
+	"err_shallow": {
+		"caminho demasiado curto; nada foi apagado",
+		"path is too shallow; nothing was deleted",
+	},
+	"err_danger": {
+		"caminho protegido do Windows; nada foi apagado",
+		"protected Windows path; nothing was deleted",
+	},
+	"err_not_allowed": {
+		"caminho fora da lista permitida; nada foi apagado",
+		"path is not on the allowlist; nothing was deleted",
+	},
+	"err_symlink": {
+		"atalho simbólico; não foi seguido",
+		"symlink; it was not followed",
+	},
+	"err_changed": {
+		"o valor mudou desde a listagem",
+		"the value changed after it was listed",
+	},
+	"err_not_text": {
+		"o valor não é texto",
+		"the value is not text",
+	},
+	"err_powercfg": {
+		"o powercfg não conseguiu ativar o plano",
+		"powercfg could not activate the plan",
+	},
+	"err_scheme": {
+		"o plano não ficou ativo",
+		"the plan did not become active",
+	},
+	"err_no_disk": {
+		"nenhum disco fixo",
+		"no fixed disk",
+	},
+	"err_memory": {
+		"não foi possível ler a memória",
+		"could not read memory",
+	},
+	"err_exit": {
+		"sem mais detalhe",
+		"no further detail",
+	},
 }
 
 type Lang int

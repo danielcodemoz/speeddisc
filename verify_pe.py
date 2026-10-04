@@ -29,6 +29,61 @@ def main() -> None:
         sys.exit("requestedExecutionLevel was not found in the executable")
     print("manifest: requireAdministrator")
     print("subsystem: console")
+    if not has_icon(data, e):
+        sys.exit("Windows icon resource (RT_GROUP_ICON / RT_ICON) was not found")
+    print("icon: RT_GROUP_ICON")
+
+
+def has_icon(data: bytes, e: int) -> bool:
+    """True when the PE resource tree contains an icon group and icon images."""
+    nsec = struct.unpack_from("<H", data, e + 6)[0]
+    optsz = struct.unpack_from("<H", data, e + 20)[0]
+    opt = e + 24
+    if struct.unpack_from("<H", data, opt)[0] != 0x20B:
+        return False
+    ndd = struct.unpack_from("<I", data, opt + 108)[0]
+    if ndd < 3:
+        return False
+    res_rva, res_size = struct.unpack_from("<II", data, opt + 112 + 16)
+    if res_rva == 0 or res_size == 0:
+        return False
+    sections = []
+    sec_off = e + 24 + optsz
+    for i in range(nsec):
+        o = sec_off + i * 40
+        vsz, va, rsz, raw = struct.unpack_from("<IIII", data, o + 8)
+        sections.append((va, max(vsz, rsz), raw))
+
+    def off_of(rva: int) -> int:
+        for va, span, raw in sections:
+            if va <= rva < va + max(span, 1):
+                return raw + (rva - va)
+        raise ValueError(f"rva {rva:#x}")
+
+    try:
+        root = off_of(res_rva)
+    except ValueError:
+        return False
+    types = []
+
+    def walk(off: int, level: int) -> None:
+        named, ids = struct.unpack_from("<HH", data, off + 12)
+        ent = off + 16
+        for i in range(named + ids):
+            name, rel = struct.unpack_from("<II", data, ent + i * 8)
+            is_dir = rel & 0x80000000
+            child = root + (rel & 0x7FFFFFFF)
+            if level == 0 and (name & 0x80000000) == 0:
+                types.append(name)
+            if is_dir:
+                walk(child, level + 1)
+
+    try:
+        walk(root, 0)
+    except struct.error:
+        return False
+    # 3 = RT_ICON, 14 = RT_GROUP_ICON
+    return 3 in types and 14 in types
 
 if __name__ == "__main__":
     main()

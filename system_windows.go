@@ -102,7 +102,7 @@ func setHighPerformance() (string, error) {
 			return "", err
 		}
 		if detail == "" {
-			detail = "powercfg failed"
+			return "", ErrPowercfg
 		}
 		return "", errors.New(detail)
 	}
@@ -110,7 +110,7 @@ func setHighPerformance() (string, error) {
 		return "", err
 	}
 	if !activeSchemeHas(guid) {
-		return "", errors.New("scheme did not become active")
+		return "", ErrScheme
 	}
 	return guid, nil
 }

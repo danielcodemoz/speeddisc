@@ -46,22 +46,26 @@ type menuItem struct {
 
 func menuCatalog() []menuItem {
 	quick := []Action{ActTemp, ActWU, ActThumb, ActPower}
+	// Deep and full run the same changing actions. Neither disables startup.
+	// There is no recycle-bin action. Canonical order creates the restore point first.
 	deep := []Action{ActTemp, ActWU, ActThumb, ActPower, ActDO, ActWER, ActRestore, ActSFC, ActDISM}
+	full := []Action{ActRestore, ActTemp, ActWU, ActThumb, ActDO, ActWER, ActPower, ActSFC, ActDISM}
 	return []menuItem{
 		{1, "opt_quick", "desc_quick", quick, "pkg"},
 		{2, "opt_deep", "desc_deep", deep, "pkg"},
 		{3, "opt_look", "desc_look", []Action{ActInfo}, "pkg"},
-		{4, "opt_temp", "desc_temp", []Action{ActTemp}, "act"},
-		{5, "opt_wu", "desc_wu", []Action{ActWU}, "act"},
-		{6, "opt_thumb", "desc_thumb", []Action{ActThumb}, "act"},
-		{7, "opt_do", "desc_do", []Action{ActDO}, "act"},
-		{8, "opt_power", "desc_power", []Action{ActPower}, "act"},
-		{9, "opt_wer", "desc_wer", []Action{ActWER}, "act"},
-		{10, "opt_sfc", "desc_sfc", []Action{ActSFC}, "act"},
-		{11, "opt_dism", "desc_dism", []Action{ActDISM}, "act"},
-		{12, "opt_restore", "desc_restore", []Action{ActRestore}, "act"},
-		{13, "opt_startup", "desc_startup", []Action{ActStartup}, "act"},
-		{14, "opt_info", "desc_info", []Action{ActInfo}, "act"},
+		{4, "opt_full", "desc_full", full, "pkg"},
+		{5, "opt_temp", "desc_temp", []Action{ActTemp}, "act"},
+		{6, "opt_wu", "desc_wu", []Action{ActWU}, "act"},
+		{7, "opt_thumb", "desc_thumb", []Action{ActThumb}, "act"},
+		{8, "opt_do", "desc_do", []Action{ActDO}, "act"},
+		{9, "opt_power", "desc_power", []Action{ActPower}, "act"},
+		{10, "opt_wer", "desc_wer", []Action{ActWER}, "act"},
+		{11, "opt_sfc", "desc_sfc", []Action{ActSFC}, "act"},
+		{12, "opt_dism", "desc_dism", []Action{ActDISM}, "act"},
+		{13, "opt_restore", "desc_restore", []Action{ActRestore}, "act"},
+		{14, "opt_startup", "desc_startup", []Action{ActStartup}, "act"},
+		{15, "opt_info", "desc_info", []Action{ActInfo}, "act"},
 	}
 }
 

@@ -3,3 +3,5 @@
 *.test
 *.tmp
 .speeddisc-write-*
+
+__pycache__/

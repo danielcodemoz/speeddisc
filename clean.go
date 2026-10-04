@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var thumbPatterns = []string{"thumbcache_*.db", "iconcache_*.db"}
+var thumbPatterns = []string{"thumbcache_*.db", "iconcache_*.db", "iconcache.db"}
 
 type Stats struct {
 	Removed int

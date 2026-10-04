@@ -110,8 +110,11 @@ func TestMatchThumb(t *testing.T) {
 	if !matchAny("thumbcache_32.db", thumbPatterns) {
 		t.Fatal("thumb")
 	}
-	if !matchAny("iconcache_256.db", thumbPatterns) {
+	if !matchAny("iconcache_256.db", thumbPatterns) || !matchAny("iconcache.db", thumbPatterns) {
 		t.Fatal("icon")
+	}
+	if matchAny("iconcache.db.bak", thumbPatterns) {
+		t.Fatal("icon overmatch")
 	}
 	if matchAny("thumbcache_32.db.bak", thumbPatterns) || matchAny("settings.dat", thumbPatterns) {
 		t.Fatal("overmatch")

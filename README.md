@@ -11,15 +11,16 @@ Licença: [MIT](LICENSE)
 ## O que faz
 
 - Pede administrador **antes** do menu, pelo manifesto `requireAdministrator` embutido no executável.
-- Menu de consola (não é uma janela gráfica nem um `.bat`), com título **SpeedDisc**, cor quando o terminal aceita ANSI, e texto simples se a cor falhar.
-- Português e English. A opção `L` muda o idioma do ecrã e do relatório.
-- Dá para escolher várias ações de uma vez (`4, 8, 13`) ou um pacote.
+- Menu de consola (não é uma janela gráfica nem um `.bat`), com título **SpeedDisc**, cor quando o terminal aceita ANSI, e texto simples se a cor falhar. Os pacotes ficam em duas colunas e as ações em três, para caber numa consola de cerca de 120 colunas sem uma lista vertical longa.
+- Português e English. A opção `L` muda o idioma do ecrã, dos avisos e do relatório.
+- Dá para escolher várias ações de uma vez (`5, 9, 14`) ou um pacote.
 
 Pacotes:
 
 1. **Rápido** — ficheiros temporários, cache de transferências do Windows Update (`SoftwareDistribution\Download` apenas), cache de miniaturas, plano de energia Alto desempenho.
-2. **Profundo** — o conjunto rápido, mais cache do Delivery Optimization e relatórios de erros do Windows, `sfc /scannow` e `DISM /Online /Cleanup-Image /RestoreHealth`. Cria um ponto de restauro se o Windows deixar. Se o ponto falhar, o resto continua e o relatório diz-o. **Não esvazia a Reciclagem.**
+2. **Profundo** — o conjunto rápido, mais cache do Delivery Optimization e relatórios de erros do Windows, `sfc /scannow` e `DISM /Online /Cleanup-Image /RestoreHealth`. Cria um ponto de restauro se o Windows deixar. Se o ponto falhar, o resto continua e o relatório diz-o. **Não desativa o arranque e não esvazia a Reciclagem.**
 3. **Só ver** — sistema, processador, memória, espaço em disco, número de entradas de arranque e uma estimativa dos temporários. Não altera nada.
+4. **Completo** — temporários, cache de transferências do Windows Update, miniaturas, cache do Delivery Optimization, relatórios de erros, plano Alto desempenho, SFC e DISM. O ponto de restauro corre primeiro, se o Windows deixar. **Não desativa programas de arranque e não esvazia a Reciclagem.**
 
 Ações individuais repetem estas peças. Em **Arranque**, o programa lista as chaves Run (HKLM, incluindo a vista de 32 bits, e HKCU) e as pastas Startup. Nada é desativado sem escolha e segunda confirmação. O valor anterior fica no relatório. Atalhos são movidos para `_SpeedDisc_disabled` dentro da própria pasta Startup; o destino do atalho não é apagado.
 
@@ -42,7 +43,7 @@ Ficheiros em uso são ignorados, não forçados.
 3. Escolha um pacote ou números separados por vírgulas. `Q` sai.
 4. Leia `SpeedDisc-report-*.txt` ao lado do executável (ou na pasta atual, se ali não der para escrever). O ficheiro é UTF-8.
 
-O executável não está assinado. O SmartScreen pode avisar. Não é um instalador escondido: o código está neste repositório.
+O executável não está assinado. O SmartScreen vai avisar até o ficheiro ser assinado com um certificado de assinatura de código pago. Não há assinatura falsa nem atalho de reputação: o aviso é esperado. Não é um instalador escondido: o código está neste repositório.
 
 ## Como compilar
 
@@ -92,15 +93,16 @@ License: [MIT](LICENSE)
 ## What it does
 
 - Asks for administrator **before** the menu, through an embedded `requireAdministrator` manifest.
-- A console menu (not a GUI window and not a `.bat`), window title **SpeedDisc**, colour when the terminal accepts ANSI, and plain text if colour fails.
-- Portuguese and English. `L` switches the language of the screen and of the report.
-- Several actions can be chosen at once (`4, 8, 13`), or a named package.
+- A console menu (not a GUI window and not a `.bat`), window title **SpeedDisc**, colour when the terminal accepts ANSI, and plain text if colour fails. Packages are shown in two columns and actions in three, so a typical 120-column console does not have to scroll a long single list.
+- Portuguese and English. `L` switches the language of the screen, the prompts, and the report.
+- Several actions can be chosen at once (`5, 9, 14`), or a named package.
 
 Packages:
 
 1. **Quick** — temp files, the Windows Update download cache (`SoftwareDistribution\Download` only), the thumbnail cache, and the High performance power plan.
-2. **Deep** — the quick set, plus the Delivery Optimization cache and Windows error reports, `sfc /scannow` and `DISM /Online /Cleanup-Image /RestoreHealth`. It creates a restore point when Windows allows it. If that fails, the rest continues and the report says so. **It does not empty the Recycle Bin.**
+2. **Deep** — the quick set, plus the Delivery Optimization cache and Windows error reports, `sfc /scannow` and `DISM /Online /Cleanup-Image /RestoreHealth`. It creates a restore point when Windows allows it. If that fails, the rest continues and the report says so. **It does not disable startup items and it does not empty the Recycle Bin.**
 3. **Look only** — OS, CPU, memory, free disk space, startup-entry count, and a temp-size estimate. It changes nothing.
+4. **Full** — temp files, the Windows Update download cache, thumbnails, the Delivery Optimization cache, error reports, the High performance power plan, SFC and DISM. The restore point runs first when Windows allows it. **It does not disable startup apps and it does not empty the Recycle Bin.**
 
 Individual actions match those pieces. **Startup** lists Run keys (HKLM, including the 32-bit view, and HKCU) and Startup folders. Nothing is disabled without a choice and a second confirmation. The previous value is written in the report. Shortcuts are moved to `_SpeedDisc_disabled` inside the Startup folder; the shortcut target is not deleted.
 
@@ -123,7 +125,7 @@ Files that are in use are skipped, not forced.
 3. Pick a package or comma-separated numbers. `Q` quits.
 4. Read `SpeedDisc-report-*.txt` next to the executable (or in the current directory if that folder is not writable). The file is UTF-8.
 
-The executable is unsigned. SmartScreen may warn. It is not a hidden installer: the source is this repository.
+The executable is unsigned. SmartScreen will warn until the file is signed with a paid code-signing certificate. There is no fake signature and no reputation shortcut: the warning is expected. It is not a hidden installer: the source is this repository.
 
 ## How to build
 

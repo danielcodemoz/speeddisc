@@ -103,7 +103,7 @@ func listRunKey(hive, key, where string, out *[]StartupEntry, warns *[]string) {
 			CanDisable: err == nil,
 		}
 		if err != nil {
-			e.Command = "(not a text value)"
+			e.Command = ""
 			e.CanDisable = false
 		}
 		*out = append(*out, e)

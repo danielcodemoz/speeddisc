@@ -12,7 +12,43 @@ var (
 	ErrSymlink      = errors.New("refusing to clean a symlink")
 	ErrValueChanged = errors.New("value changed since it was listed")
 	ErrNotText      = errors.New("not a text value")
+	ErrPowercfg     = errors.New("powercfg failed")
+	ErrScheme       = errors.New("scheme did not become active")
+	ErrNoDisk       = errors.New("no fixed disk")
+	ErrMemory       = errors.New("could not read memory")
 )
+
+// errDetail is what the console and the report show. Known errors follow the
+// selected language. Other text is the system message, clipped.
+func errDetail(err error) any {
+	if err == nil {
+		return ""
+	}
+	switch {
+	case errors.Is(err, ErrShallow):
+		return tr("err_shallow")
+	case errors.Is(err, ErrDanger):
+		return tr("err_danger")
+	case errors.Is(err, ErrNotAllowed):
+		return tr("err_not_allowed")
+	case errors.Is(err, ErrSymlink):
+		return tr("err_symlink")
+	case errors.Is(err, ErrValueChanged):
+		return tr("err_changed")
+	case errors.Is(err, ErrNotText):
+		return tr("err_not_text")
+	case errors.Is(err, ErrPowercfg):
+		return tr("err_powercfg")
+	case errors.Is(err, ErrScheme):
+		return tr("err_scheme")
+	case errors.Is(err, ErrNoDisk):
+		return tr("err_no_disk")
+	case errors.Is(err, ErrMemory):
+		return tr("err_memory")
+	default:
+		return clip(err.Error(), 200)
+	}
+}
 
 type CleanKind int
 

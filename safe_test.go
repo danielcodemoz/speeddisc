@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestAllowClean(t *testing.T) {
 	ok := []struct {
@@ -56,5 +59,20 @@ func TestStartupDir(t *testing.T) {
 	}
 	if IsStartupDir(`C:\Users\Ana\Desktop`) {
 		t.Fatal("desktop")
+	}
+}
+
+func TestErrDetailLanguage(t *testing.T) {
+	m := msg{"fail_clean", []any{tr("name_temp"), errDetail(ErrShallow)}}
+	pt := m.Text(LangPT)
+	en := m.Text(LangEN)
+	if strings.Contains(pt, "shallow") || strings.Contains(pt, "refusing") {
+		t.Fatal(pt)
+	}
+	if !strings.Contains(en, "too shallow") || !strings.Contains(pt, "demasiado curto") {
+		t.Fatalf("pt=%s en=%s", pt, en)
+	}
+	if strings.Contains(m.Text(LangPT), "exit") {
+		t.Fatal("exit")
 	}
 }

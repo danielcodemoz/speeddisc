@@ -34,7 +34,7 @@ func physicalMemory() (total, avail uint64, err error) {
 		if e != nil {
 			return 0, 0, e
 		}
-		return 0, 0, fmt.Errorf("GlobalMemoryStatusEx failed")
+		return 0, 0, ErrMemory
 	}
 	return m.ullTotalPhys, m.ullAvailPhys, nil
 }
@@ -60,7 +60,7 @@ func readOS() (string, error) {
 		b.WriteString(display)
 	}
 	if build != "" {
-		b.WriteString(" (build ")
+		b.WriteString(" (")
 		b.WriteString(build)
 		if ubrErr == nil {
 			fmt.Fprintf(&b, ".%d", ubr)
@@ -156,25 +156,25 @@ func estimateTemp() (int64, error) {
 
 func collectInfo(rep *Report) {
 	if s, err := readOS(); err != nil {
-		rep.addFail(msg{"fail_info", []any{tr("name_os"), clip(err.Error(), 180)}})
+		rep.addFail(msg{"fail_info", []any{tr("name_os"), errDetail(err)}})
 	} else {
 		rep.addFound(msg{"found_os", []any{s}})
 	}
 	if s, err := readCPU(); err != nil {
-		rep.addFail(msg{"fail_info", []any{tr("name_cpu"), clip(err.Error(), 180)}})
+		rep.addFail(msg{"fail_info", []any{tr("name_cpu"), errDetail(err)}})
 	} else if s != "" {
 		rep.addFound(msg{"found_cpu", []any{s}})
 	}
 	if total, avail, err := physicalMemory(); err != nil {
-		rep.addFail(msg{"fail_info", []any{tr("name_ram"), clip(err.Error(), 180)}})
+		rep.addFail(msg{"fail_info", []any{tr("name_ram"), errDetail(err)}})
 	} else {
 		rep.addFound(msg{"found_ram", []any{size(avail), size(total)}})
 	}
 	disks, err := fixedDisks()
 	if err != nil {
-		rep.addFail(msg{"fail_info", []any{tr("name_disks"), clip(err.Error(), 180)}})
+		rep.addFail(msg{"fail_info", []any{tr("name_disks"), errDetail(err)}})
 	} else if len(disks) == 0 {
-		rep.addFail(msg{"fail_info", []any{tr("name_disks"), "no fixed disk"}})
+		rep.addFail(msg{"fail_info", []any{tr("name_disks"), errDetail(ErrNoDisk)}})
 	} else {
 		for _, d := range disks {
 			rep.addFound(msg{"found_disk", []any{d.Letter, size(d.Free), size(d.Total)}})
@@ -201,7 +201,7 @@ func collectInfo(rep *Report) {
 		rep.addFail(msg{"fail_info", []any{tr("name_startup"), clip(w, 180)}})
 	}
 	if n, err := estimateTemp(); err != nil {
-		rep.addFail(msg{"fail_info", []any{tr("name_temp"), clip(err.Error(), 180)}})
+		rep.addFail(msg{"fail_info", []any{tr("name_temp"), errDetail(err)}})
 		rep.addFound(msg{"found_temp", []any{size(n)}})
 	} else {
 		rep.addFound(msg{"found_temp", []any{size(n)}})
