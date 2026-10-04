@@ -19,10 +19,15 @@ type Stats struct {
 }
 
 func Clean(kind CleanKind, path string) Stats {
+	return CleanNotify(kind, path, nil)
+}
+
+// CleanNotify is Clean plus an optional count of files touched (removed or skipped).
+func CleanNotify(kind CleanKind, path string, tick func(int)) Stats {
 	if err := AllowClean(kind, path); err != nil {
 		return Stats{Err: err}
 	}
-	st, err := cleanTree(path)
+	st, err := cleanTreeNotify(path, tick)
 	if err != nil {
 		st.Err = err
 	}
@@ -30,6 +35,10 @@ func Clean(kind CleanKind, path string) Stats {
 }
 
 func CleanMatching(path string, patterns []string) Stats {
+	return CleanMatchingNotify(path, patterns, nil)
+}
+
+func CleanMatchingNotify(path string, patterns []string, tick func(int)) Stats {
 	if err := AllowClean(CleanThumb, path); err != nil {
 		return Stats{Err: err}
 	}
@@ -69,10 +78,12 @@ func CleanMatching(path string, patterns []string) Stats {
 		}
 		if err := os.Remove(full); err != nil {
 			st.Skipped++
+			noteTouched(tick, st.Removed+st.Skipped)
 			continue
 		}
 		st.Removed++
 		st.Freed += sz
+		noteTouched(tick, st.Removed+st.Skipped)
 	}
 	return st
 }
@@ -131,6 +142,16 @@ func measureTree(root string) (int64, error) {
 }
 
 func cleanTree(root string) (Stats, error) {
+	return cleanTreeNotify(root, nil)
+}
+
+func noteTouched(tick func(int), n int) {
+	if tick != nil {
+		tick(n)
+	}
+}
+
+func cleanTreeNotify(root string, tick func(int)) (Stats, error) {
 	if pathTooShallow(root) {
 		return Stats{}, ErrShallow
 	}
@@ -156,10 +177,12 @@ func cleanTree(root string) (Stats, error) {
 		}
 		if walkErr != nil {
 			st.Skipped++
+			noteTouched(tick, st.Removed+st.Skipped)
 			return nil
 		}
 		if d.Type()&os.ModeSymlink != 0 {
 			st.Skipped++
+			noteTouched(tick, st.Removed+st.Skipped)
 			if d.IsDir() {
 				return fs.SkipDir
 			}
@@ -171,6 +194,7 @@ func cleanTree(root string) (Stats, error) {
 		}
 		if skipProtected(path) {
 			st.Skipped++
+			noteTouched(tick, st.Removed+st.Skipped)
 			return nil
 		}
 		var sz int64
@@ -179,10 +203,12 @@ func cleanTree(root string) (Stats, error) {
 		}
 		if err := os.Remove(path); err != nil {
 			st.Skipped++
+			noteTouched(tick, st.Removed+st.Skipped)
 			return nil
 		}
 		st.Removed++
 		st.Freed += sz
+		noteTouched(tick, st.Removed+st.Skipped)
 		return nil
 	})
 	if err != nil {

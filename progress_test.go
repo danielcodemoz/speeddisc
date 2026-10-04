@@ -101,3 +101,66 @@ func TestPercentCarriageReturnDoesNotGrow(t *testing.T) {
 		t.Fatal(b.String())
 	}
 }
+
+func TestPercentANSIAndNoNewlineYet(t *testing.T) {
+	var b bytes.Buffer
+	line := newScanLine(&b, "DISM", 80, nil)
+	f := newPercentFilter(line)
+	if _, err := f.Write([]byte("\x1b[2K\x1b[1G[==] 41.2%")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write([]byte("\x1b[1G[==] 42.0%\r")); err != nil {
+		t.Fatal(err)
+	}
+	f.flush()
+	got := b.String()
+	if strings.Contains(got, "\n") || strings.Contains(got, "\x1b") || strings.Contains(got, "[==") {
+		t.Fatalf("%q", got)
+	}
+	if strings.Count(got, "DISM 41%") != 1 || strings.Count(got, "DISM 42%") != 1 {
+		t.Fatalf("%q", got)
+	}
+}
+
+func TestLiveRowStaysOneLine(t *testing.T) {
+	var b bytes.Buffer
+	live := startLive(&b, "SFC", "a trabalhar", "%d ficheiros", 80, nil, true)
+	live.setPercent(27)
+	live.setPercent(27)
+	live.setPercent(28)
+	live.stop()
+	live.line.finish("  SFC concluído")
+	got := b.String()
+	if strings.Count(got, "\n") != 1 {
+		t.Fatalf("want one final line: %q", got)
+	}
+	if !strings.Contains(got, "27%") || !strings.Contains(got, "28%") {
+		t.Fatal(got)
+	}
+	if strings.Contains(got, "27.1") || strings.Contains(got, "100%") {
+		t.Fatal(got)
+	}
+	last := strings.TrimRight(got, " \t\r\n")
+	if !strings.HasSuffix(last, "SFC concluído") {
+		t.Fatal(got)
+	}
+}
+
+func TestLiveCountNotAPercent(t *testing.T) {
+	var b bytes.Buffer
+	live := startLive(&b, "Temp", "a trabalhar", "%d ficheiros", 80, nil, false)
+	for i := 1; i <= 20; i++ {
+		live.setCount(i)
+	}
+	live.stopClear()
+	got := b.String()
+	if strings.Contains(got, "%") {
+		t.Fatalf("count invented a percent: %q", got)
+	}
+	if strings.Contains(got, "\n") {
+		t.Fatalf("count opened new lines: %q", got)
+	}
+	if !strings.Contains(got, "ficheiros") {
+		t.Fatal(got)
+	}
+}

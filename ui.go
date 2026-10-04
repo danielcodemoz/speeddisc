@@ -129,8 +129,8 @@ func (u *UI) Menu(lang Lang) {
 	fmt.Fprintln(u.out)
 	u.box(T(lang, "section_actions"), u.sectionColumns(lang, "act", columnsThatFit(inner, 3), inner))
 	fmt.Fprintln(u.out)
-	fmt.Fprintf(u.out, "   L   %s\n", T(lang, "opt_lang"))
-	fmt.Fprintf(u.out, "   Q   %s\n", T(lang, "opt_quit"))
+	u.rawWrap(fmt.Sprintf("   L   %s", T(lang, "opt_lang")))
+	u.rawWrap(fmt.Sprintf("   Q   %s", T(lang, "opt_quit")))
 	fmt.Fprintln(u.out)
 	u.info(T(lang, "menu_hint"))
 }
@@ -253,7 +253,7 @@ func (u *UI) box(title string, lines []string) {
 		topFill = 1
 	}
 	top := tl + horiz + label + strings.Repeat(horiz, topFill) + tr
-	fmt.Fprintln(u.out, u.paint(ansiCyan, top))
+	fmt.Fprintln(u.out, u.paint(ansiBoldCyan, top))
 	for _, line := range lines {
 		fmt.Fprintf(u.out, "%s%s%s\n", u.paint(ansiCyan, vert), padRight(line, inner), u.paint(ansiCyan, vert))
 	}
@@ -263,7 +263,7 @@ func (u *UI) box(title string, lines []string) {
 
 func (u *UI) section(lang Lang, titleKey string, lines []msg) {
 	fmt.Fprintln(u.out)
-	u.info(T(lang, titleKey))
+	u.step(T(lang, titleKey))
 	if len(lines) == 0 {
 		u.info(T(lang, "rep_none"))
 		return
@@ -271,6 +271,13 @@ func (u *UI) section(lang Lang, titleKey string, lines []msg) {
 	for _, m := range lines {
 		u.info(m.Text(lang))
 	}
+}
+
+// track starts one in-place row for a step that has no real percentage.
+func (u *UI) track(label, working, countFmt string) *liveLine {
+	return startLive(u.out, label, working, countFmt, u.termWidth()-1, func(s string) string {
+		return u.paint(ansiBoldCyan, s)
+	}, u.utf8)
 }
 
 func confirmBody(lang Lang, acts []Action) string {

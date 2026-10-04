@@ -90,7 +90,75 @@ func clip(s string, n int) string {
 	if n == 1 {
 		return string(r[:1])
 	}
-	return string(r[:n-1]) + "…"
+	limit := n - 1
+	cut := limit
+	for i := limit - 1; i > limit/2; i-- {
+		if r[i] == ' ' {
+			cut = i
+			break
+		}
+	}
+	return strings.TrimRight(string(r[:cut]), " ") + "…"
+}
+
+// stripANSI removes CSI and OSC sequences so a percent can be read from
+// pseudoconsole output, and so width checks ignore colour codes.
+func stripANSI(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for i := 0; i < len(s); i++ {
+		if s[i] != 0x1b {
+			b.WriteByte(s[i])
+			continue
+		}
+		if i+1 >= len(s) {
+			break
+		}
+		switch s[i+1] {
+		case '[':
+			i += 2
+			for i < len(s) {
+				c := s[i]
+				i++
+				if (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') {
+					break
+				}
+			}
+			i--
+		case ']':
+			i += 2
+			for i < len(s) && s[i] != 0x07 && !(s[i] == 0x1b && i+1 < len(s) && s[i+1] == '\\') {
+				i++
+			}
+			if i < len(s) && s[i] == 0x1b {
+				i++
+			}
+		default:
+			i++
+		}
+	}
+	return b.String()
+}
+
+// visibleWidth is the console viewport in columns.
+// A viewport of 0 falls back to the buffer width. A viewport wider than the
+// buffer is clamped, because that text would not fit. maxWindow, when set,
+// is only an upper bound (never a reason to pretend the window is wider).
+func visibleWidth(window, buffer, maxWindow int) int {
+	w := window
+	if w < 1 {
+		w = buffer
+	}
+	if buffer > 0 && w > buffer {
+		w = buffer
+	}
+	if maxWindow > 0 && w > maxWindow {
+		w = maxWindow
+	}
+	if w < 1 {
+		return 0
+	}
+	return w
 }
 
 // FormatBytes reports a binary size. The unit is KiB/MiB (1024), not a decimal megabyte.

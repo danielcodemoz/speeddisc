@@ -162,3 +162,63 @@ func TestMenuColumnsFollowWidth(t *testing.T) {
 		}
 	}
 }
+
+func TestLongResultWrapsOnWords(t *testing.T) {
+	var b bytes.Buffer
+	ui := NewUI(&b, strings.NewReader(""))
+	ui.cols = 90
+	ui.color = true
+	ui.utf8 = true
+	msg := "Temporários do utilizador: 128 ficheiros removidos (12,4 MiB); 7 ignorados (em uso ou sem acesso)."
+	ui.ok(msg)
+	plain := stripANSI(b.String())
+	if !strings.Contains(plain, "sem acesso") {
+		t.Fatal(plain)
+	}
+	for _, line := range strings.Split(plain, "\n") {
+		if line == "" {
+			continue
+		}
+		if runeLen(line) > ui.cols-1 {
+			t.Fatalf("line wider than window: %d %q", runeLen(line), line)
+		}
+		// A wrapped line ends on a word, not mid-word, unless the console row is the whole message.
+		trim := strings.TrimRight(line, " ")
+		if strings.HasSuffix(trim, " ou s") || strings.HasSuffix(trim, "em uso ou s") {
+			t.Fatalf("cut mid-word: %q", line)
+		}
+	}
+}
+
+func TestVisibleWidthUsesViewport(t *testing.T) {
+	if visibleWidth(100, 200, 180) != 100 {
+		t.Fatal("viewport should win over a wider buffer")
+	}
+	if visibleWidth(0, 80, 0) != 80 {
+		t.Fatal("fallback")
+	}
+	if visibleWidth(140, 80, 0) != 80 {
+		t.Fatal("clamp to buffer")
+	}
+	if visibleWidth(48, 200, 0) != 48 {
+		t.Fatal("narrow window")
+	}
+}
+
+func TestClipPrefersWordBoundary(t *testing.T) {
+	got := clip("ignorados (em uso ou sem acesso) e mais texto depois", 28)
+	if strings.Contains(got, " ou s") && !strings.Contains(got, "…") {
+		t.Fatal(got)
+	}
+	if !strings.HasSuffix(got, "…") {
+		t.Fatal(got)
+	}
+	if runeLen(got) > 28 {
+		t.Fatalf("%d %q", runeLen(got), got)
+	}
+	// Must not end in the middle of "sem".
+	body := strings.TrimSuffix(got, "…")
+	if strings.HasSuffix(strings.TrimRight(body, " "), "s") && strings.Contains(body, "ou s") {
+		t.Fatal(got)
+	}
+}

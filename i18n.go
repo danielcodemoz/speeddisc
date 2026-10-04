@@ -145,6 +145,14 @@ var text = map[string][2]string{
 		"Isto pode demorar.",
 		"This can take a long time.",
 	},
+	"working": {
+		"a trabalhar",
+		"working",
+	},
+	"files_n": {
+		"%d ficheiros",
+		"%d files",
+	},
 	"done_sfc_line":  {"SFC concluído", "SFC finished"},
 	"done_dism_line": {"DISM concluído", "DISM finished"},
 	"report_at":      {"Relatório: %s", "Report: %s"},
