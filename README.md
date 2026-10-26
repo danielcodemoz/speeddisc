@@ -8,6 +8,8 @@ Sítio: https://speeddisc.danielpro.dev
 Código: https://github.com/danielcodemoz/speeddisc
 Licença: [MIT](LICENSE)
 
+Versão atual: **0.4.0**
+
 ## O que faz
 
 - Pede administrador **antes** do menu, pelo manifesto `requireAdministrator` embutido no executável.
@@ -39,10 +41,34 @@ Ficheiros em uso são ignorados, não forçados.
 
 ## Como correr
 
+### Modo interativo
+
 1. Transfira `SpeedDisc.exe` (ou compile). Um ficheiro chega.
 2. Duplo clique. O Windows pede administrador antes de aparecer o menu.
 3. Escolha um pacote ou números separados por vírgulas. `Q` sai.
 4. Leia `SpeedDisc-report-*.txt` ao lado do executável (ou na pasta atual, se ali não der para escrever). O ficheiro é UTF-8.
+
+### Modo não-interativo (novo em 0.4.0)
+
+Para correr sem o menu, a partir da linha de comandos ou de uma pen USB:
+
+```cmd
+SpeedDisc.exe -q quick
+SpeedDisc.exe -q deep
+SpeedDisc.exe -q full
+```
+
+Também aceita números de pacote:
+
+```cmd
+SpeedDisc.exe -q 1
+SpeedDisc.exe -q 2
+```
+
+No modo não-interativo:
+- Não há avisos nem pedidos de confirmação (exceto se a ação normalmente pedir escolhas, como Arranque)
+- Se o ponto de restauro falhar, o resto continua e fica registado no relatório
+- O código de saída é 0 quando tudo corre bem, diferente de 0 se houver erros graves
 
 O executável não está assinado. O SmartScreen vai avisar até o ficheiro ser assinado com um certificado de assinatura de código pago. Não há assinatura falsa nem atalho de reputação: o aviso é esperado. Não é um instalador escondido: o código está neste repositório.
 
@@ -75,6 +101,29 @@ Um workflow de GitHub Actions pode chamar `./build.sh` e publicar `SpeedDisc.exe
 
 A pasta `site/` é a página estática para https://speeddisc.danielpro.dev. Não faz parte do executável.
 
+## Notas de lançamento
+
+### v0.4.0 (2026-10-26)
+
+**Novidades:**
+- Resumo de espaço em disco antes/depois de qualquer operação que altere o sistema
+- Modo não-interativo (`-q` / `--quiet`) com nome ou número de pacote para automatização
+- Nova ação: Limpeza do Component Store (DISM /StartComponentCleanup)
+- Nova ação: Lista dos 20 ficheiros maiores na unidade do sistema (apenas informativo)
+- Nova ação: Limpeza de cache de navegadores (Chrome, Edge, Firefox) com aviso
+- Nova ação: Flush DNS e opcionalmente Winsock reset (com confirmação)
+- Suporte para assinatura de código no `build.sh` (requer `CODESIGN_PFX` e `CODESIGN_PASSWORD`)
+
+**Mantém:**
+- Filosofia do produto: sem percentagens falsas, sem esvaziar Reciclagem, sem matar processos, sem limpa-registo
+- Ignora ficheiros em uso, pede segunda confirmação para ações destrutivas
+- i18n PT-PT + EN para todas as novas funcionalidades
+- Relatório UTF-8 junto ao executável
+
+### v0.3.1 e anteriores
+
+Versões iniciais com pacotes Rápido/Profundo/Completo, SFC, DISM, arranque, temporários, cache do Windows Update, miniaturas, Delivery Optimization, relatórios de erros, plano de energia Alto desempenho.
+
 ## Licença
 
 MIT. Copyright (c) 2026 Daniel Marcos.
@@ -90,6 +139,8 @@ It is not a “booster” with percentages. There are no invented speed numbers.
 Site: https://speeddisc.danielpro.dev
 Code: https://github.com/danielcodemoz/speeddisc
 License: [MIT](LICENSE)
+
+Current version: **0.4.0**
 
 ## What it does
 
@@ -122,10 +173,34 @@ Files that are in use are skipped, not forced.
 
 ## How to run
 
+### Interactive mode
+
 1. Download `SpeedDisc.exe` (or build it). One file is enough.
 2. Double-click. Windows asks for administrator before the menu appears.
 3. Pick a package or comma-separated numbers. `Q` quits.
 4. Read `SpeedDisc-report-*.txt` next to the executable (or in the current directory if that folder is not writable). The file is UTF-8.
+
+### Non-interactive mode (new in 0.4.0)
+
+To run without the menu, from the command line or a USB stick:
+
+```cmd
+SpeedDisc.exe -q quick
+SpeedDisc.exe -q deep
+SpeedDisc.exe -q full
+```
+
+Package numbers also work:
+
+```cmd
+SpeedDisc.exe -q 1
+SpeedDisc.exe -q 2
+```
+
+In non-interactive mode:
+- No prompts or confirmations (except for actions that normally require user choices, like Startup)
+- If the restore point fails, the rest continues and is logged in the report
+- Exit code is 0 when everything succeeds, non-zero on serious errors
 
 The executable is unsigned. SmartScreen will warn until the file is signed with a paid code-signing certificate. There is no fake signature and no reputation shortcut: the warning is expected. It is not a hidden installer: the source is this repository.
 
@@ -157,6 +232,29 @@ python verify_pe.py SpeedDisc.exe
 A GitHub Actions workflow can call `./build.sh` and upload `SpeedDisc.exe` as an artifact. The intended file is `.github/workflows/build.yml`.
 
 The `site/` folder is the static page for https://speeddisc.danielpro.dev. It is not part of the executable.
+
+## Release notes
+
+### v0.4.0 (2026-10-26)
+
+**New features:**
+- Before/after disk space summary for any operation that changes the system
+- Non-interactive mode (`-q` / `--quiet`) with package name or number for automation
+- New action: Component Store cleanup (DISM /StartComponentCleanup)
+- New action: List top 20 largest files on the system drive (informational only)
+- New action: Browser cache cleanup (Chrome, Edge, Firefox) with warning
+- New action: Flush DNS and optionally Winsock reset (with confirmation)
+- Code signing support in `build.sh` (requires `CODESIGN_PFX` and `CODESIGN_PASSWORD`)
+
+**Maintains:**
+- Product philosophy: no fake speed percentages, no emptying Recycle Bin, no killing processes, no registry cleaner
+- Skips files in use, asks for second confirmation on destructive actions
+- PT-PT + EN i18n for all new features
+- UTF-8 report next to the executable
+
+### v0.3.1 and earlier
+
+Initial releases with Quick/Deep/Full packages, SFC, DISM, startup, temp files, Windows Update cache, thumbnails, Delivery Optimization, error reports, High performance power plan.
 
 ## License
 

@@ -95,3 +95,19 @@ func sysExe(rel string) string {
 	}
 	return filepath.Base(filepath.FromSlash(rel))
 }
+
+func browserCachePaths() []string {
+	var paths []string
+	la := os.Getenv("LOCALAPPDATA")
+	if la == "" {
+		return paths
+	}
+	paths = append(paths,
+		filepath.Join(la, "Google", "Chrome", "User Data", "Default", "Cache"),
+		filepath.Join(la, "Google", "Chrome", "User Data", "Default", "Code Cache"),
+		filepath.Join(la, "Microsoft", "Edge", "User Data", "Default", "Cache"),
+		filepath.Join(la, "Microsoft", "Edge", "User Data", "Default", "Code Cache"),
+		filepath.Join(la, "Mozilla", "Firefox", "Profiles"),
+	)
+	return paths
+}

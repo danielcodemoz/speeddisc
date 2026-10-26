@@ -132,3 +132,52 @@ func runSFC(out io.Writer, max int, paint func(string) string, working string, u
 func runDISM(out io.Writer, max int, paint func(string) string, working string, utf8 bool) (int, string, *scanLine) {
 	return runScan(out, "DISM", max, paint, working, utf8, sysExe("dism.exe"), "/Online", "/Cleanup-Image", "/RestoreHealth")
 }
+
+func runComponentCleanup(out io.Writer, max int, paint func(string) string, working string, utf8 bool) (int, string, *scanLine) {
+	return runScan(out, "DISM", max, paint, working, utf8, sysExe("dism.exe"), "/Online", "/Cleanup-Image", "/StartComponentCleanup")
+}
+
+func getSystemDriveFree() (uint64, error) {
+	disks, err := fixedDisks()
+	if err != nil {
+		return 0, err
+	}
+	if len(disks) == 0 {
+		return 0, ErrNoDisk
+	}
+	systemRoot := os.Getenv("SystemRoot")
+	if systemRoot == "" {
+		systemRoot = `C:\`
+	}
+	systemDrive := strings.ToUpper(systemRoot[:2])
+	for _, d := range disks {
+		if strings.ToUpper(d.Letter) == systemDrive[:2] {
+			return d.Free, nil
+		}
+	}
+	return disks[0].Free, nil
+}
+
+func flushDNS() error {
+	out, err := runCapture(sysExe("ipconfig.exe"), "/flushdns")
+	if err != nil {
+		detail := clip(strings.TrimSpace(out), 220)
+		if detail == "" {
+			return err
+		}
+		return errors.New(detail)
+	}
+	return nil
+}
+
+func resetWinsock() error {
+	out, err := runCapture(sysExe("netsh.exe"), "winsock", "reset")
+	if err != nil {
+		detail := clip(strings.TrimSpace(out), 220)
+		if detail == "" {
+			return err
+		}
+		return errors.New(detail)
+	}
+	return nil
+}

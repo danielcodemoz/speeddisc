@@ -89,6 +89,26 @@ var text = map[string][2]string{
 		"Igual ao pacote Só ver: lê informação e não altera nada.",
 		"Same as Look only: reads information and changes nothing.",
 	},
+	"opt_component_cleanup": {"Limpeza do Component Store", "Component Store cleanup"},
+	"desc_component_cleanup": {
+		"Executa DISM /StartComponentCleanup para limpar versões antigas de componentes. Pode libertar espaço mas demora.",
+		"Runs DISM /StartComponentCleanup to remove superseded component versions. Can free space but takes time.",
+	},
+	"opt_top_files": {"Ficheiros maiores (listar)", "Top large files (list)"},
+	"desc_top_files": {
+		"Lista os 20 ficheiros maiores na unidade do sistema. Apenas informativo, não apaga nada.",
+		"Lists the top 20 largest files on the system drive. Informational only, does not delete anything.",
+	},
+	"opt_browser_cache": {"Cache de navegadores", "Browser caches"},
+	"desc_browser_cache": {
+		"Limpa a cache do Chrome, Edge e Firefox. Os navegadores devem estar fechados.",
+		"Clears Chrome, Edge, and Firefox caches. Browsers should be closed.",
+	},
+	"opt_flush_dns": {"Flush DNS / Winsock reset", "Flush DNS / Winsock reset"},
+	"desc_flush_dns": {
+		"Executa ipconfig /flushdns e opcionalmente netsh winsock reset. Reset Winsock pode requerer reinício.",
+		"Runs ipconfig /flushdns and optionally netsh winsock reset. Winsock reset may require reboot.",
+	},
 	"opt_lang": {"English", "Português"},
 	"opt_quit": {"Sair", "Quit"},
 	"menu_hint": {
@@ -256,9 +276,14 @@ var text = map[string][2]string{
 	"name_os":        {"Sistema", "System"},
 	"name_cpu":       {"Processador", "Processor"},
 	"name_ram":       {"Memória", "Memory"},
-	"name_temp":      {"Temporários", "Temporary files"},
-	"name_disks":     {"Discos", "Disks"},
-	"not_text_value": {"(valor não texto)", "(not a text value)"},
+	"name_temp":              {"Temporários", "Temporary files"},
+	"name_disks":             {"Discos", "Disks"},
+	"name_component_cleanup": {"Limpeza do Component Store", "Component Store cleanup"},
+	"name_top_files":         {"Ficheiros maiores", "Top large files"},
+	"name_browser_cache":     {"Cache de navegadores", "Browser caches"},
+	"name_flush_dns":         {"Flush DNS", "Flush DNS"},
+	"name_winsock_reset":     {"Winsock reset", "Winsock reset"},
+	"not_text_value":         {"(valor não texto)", "(not a text value)"},
 	"err_shallow": {
 		"caminho demasiado curto; nada foi apagado",
 		"path is too shallow; nothing was deleted",
@@ -302,6 +327,42 @@ var text = map[string][2]string{
 	"err_exit": {
 		"sem mais detalhe",
 		"no further detail",
+	},
+	"disk_summary": {
+		"Espaço em disco antes: %s livres. Depois: %s livres. Recuperados: %s",
+		"Disk space before: %s free. After: %s free. Recovered: %s",
+	},
+	"browser_warning": {
+		"AVISO: Feche todos os navegadores antes de continuar. Ficheiros em uso serão ignorados.",
+		"WARNING: Close all browsers before continuing. Files in use will be skipped.",
+	},
+	"winsock_confirm": {
+		"Fazer também Winsock reset? (Pode requerer reinício) (s/n) ",
+		"Also do Winsock reset? (May require reboot) (y/n) ",
+	},
+	"done_flush_dns": {
+		"Cache DNS limpa.",
+		"DNS cache flushed.",
+	},
+	"done_winsock_reset": {
+		"Winsock reset executado. Pode ser necessário reiniciar o computador.",
+		"Winsock reset completed. A computer restart may be required.",
+	},
+	"done_browser_cache": {
+		"Cache de navegadores: %d ficheiros removidos (%s); %d ignorados.",
+		"Browser caches: removed %d files (%s); skipped %d.",
+	},
+	"done_top_files": {
+		"Top %d ficheiros maiores:",
+		"Top %d largest files:",
+	},
+	"top_file_entry": {
+		"%s — %s",
+		"%s — %s",
+	},
+	"fail_disk_space": {
+		"Não foi possível ler o espaço em disco: %s",
+		"Could not read disk space: %s",
 	},
 }
 

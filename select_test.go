@@ -58,8 +58,8 @@ func TestMenuNumbersUnique(t *testing.T) {
 			t.Fatalf("incomplete item %d", it.num)
 		}
 	}
-	if len(seen) != 15 {
-		t.Fatalf("got %d items", len(seen))
+	if len(seen) != 19 {
+		t.Fatalf("got %d items, want 19", len(seen))
 	}
 }
 

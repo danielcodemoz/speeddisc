@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	qm := parseFlags()
+	
 	ui := NewUI(os.Stdout, os.Stdin)
 	color, utf8 := setupConsole()
 	ui.color = color
@@ -28,8 +30,15 @@ func main() {
 
 	if !elevated() {
 		ui.paragraph(T(lang, "need_admin"))
-		ui.Ask("\n  " + T(lang, "press_enter_exit") + " ")
+		if !qm.Enabled {
+			ui.Ask("\n  " + T(lang, "press_enter_exit") + " ")
+		}
 		os.Exit(1)
+	}
+
+	if qm.Enabled {
+		runQuietMode(qm, lang, ui, rep)
+		return
 	}
 
 	for {
@@ -75,4 +84,34 @@ func main() {
 	}
 	ui.info(T(lang, "bye"))
 	ui.Ask("  " + T(lang, "press_enter_exit") + " ")
+}
+
+func runQuietMode(qm quietMode, lang Lang, ui *UI, rep *Report) {
+	selection := packageToSelection(qm.Package)
+	if selection == "" {
+		fmt.Fprintf(os.Stderr, "Invalid package: %s. Use quick/deep/look/full or 1-4.\n", qm.Package)
+		os.Exit(1)
+	}
+
+	acts, err := ParseSelection(selection)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to parse selection: %v\n", err)
+		os.Exit(1)
+	}
+
+	collectInfo(rep)
+	execute(lang, acts, ui, rep)
+	
+	rep.setLang(lang)
+	path, err := rep.Write()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to write report: %v\n", err)
+		os.Exit(1)
+	}
+	
+	fmt.Fprintf(os.Stdout, "Report: %s\n", path)
+	
+	if len(rep.Failed) > 0 {
+		os.Exit(1)
+	}
 }

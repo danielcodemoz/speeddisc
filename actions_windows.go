@@ -5,7 +5,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
+	"time"
 )
 
 func cleans(kind CleanKind, paths []string) []Stats {
@@ -135,6 +137,12 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 	if fresh || Contains(acts, ActInfo) {
 		ui.section(lang, "rep_found", rep.FoundCopy())
 	}
+
+	var diskBefore, diskAfter uint64
+	if Mutates(acts) {
+		diskBefore, _ = getSystemDriveFree()
+	}
+
 	for _, a := range acts {
 		switch a {
 		case ActInfo:
@@ -198,10 +206,129 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 			recordCommand(rep, ui, lang, tr("name_dism"), code, tail, true, line, T(lang, "done_dism_line"))
 		case ActStartup:
 			runStartupUI(lang, ui, rep)
+		case ActComponentCleanup:
+			ui.step(T(lang, "running", T(lang, "name_component_cleanup")))
+			ui.warn(T(lang, "long_running"))
+			code, tail, line := runComponentCleanup(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8)
+			recordCommand(rep, ui, lang, tr("name_component_cleanup"), code, tail, false, line, T(lang, "done_dism_line"))
+		case ActTopFiles:
+			runTopFilesUI(lang, ui, rep)
+		case ActBrowserCache:
+			runBrowserCacheUI(lang, ui, rep)
+		case ActFlushDNS:
+			runFlushDNSUI(lang, ui, rep)
 		}
 		rep.setLang(lang)
 		_, _ = rep.Write()
 	}
+
+	if Mutates(acts) {
+		diskAfter, _ = getSystemDriveFree()
+		if diskBefore > 0 && diskAfter > 0 {
+			var recovered int64
+			if diskAfter > diskBefore {
+				recovered = int64(diskAfter - diskBefore)
+			}
+			m := msg{"disk_summary", []any{size(diskBefore), size(diskAfter), size(recovered)}}
+			rep.addDone(m)
+			ui.ok(m.Text(lang))
+		}
+	}
+}
+
+func runTopFilesUI(lang Lang, ui *UI, rep *Report) {
+	ui.step(T(lang, "running", T(lang, "name_top_files")))
+	systemRoot := os.Getenv("SystemRoot")
+	if systemRoot == "" {
+		systemRoot = `C:\`
+	} else {
+		systemRoot = systemRoot[:3]
+	}
+	
+	live := ui.track(T(lang, "name_top_files"), T(lang, "working"), "")
+	files := findTopLargeFiles(systemRoot, 20, 30*time.Second)
+	live.stopClear()
+	
+	if len(files) == 0 {
+		ui.info(T(lang, "done_top_files", 0))
+		m := msg{"done_top_files", []any{0}}
+		rep.addDone(m)
+		return
+	}
+	
+	fmt.Fprintln(ui.out)
+	ui.info(T(lang, "done_top_files", len(files)))
+	for i, f := range files {
+		line := fmt.Sprintf("  %2d. %s — %s", i+1, FormatBytes(f.Size, lang), f.Path)
+		ui.rawWrap(line)
+		m := msg{"top_file_entry", []any{FormatBytes(f.Size, lang), f.Path}}
+		rep.addDone(m)
+	}
+	fmt.Fprintln(ui.out)
+}
+
+func runBrowserCacheUI(lang Lang, ui *UI, rep *Report) {
+	ui.step(T(lang, "running", T(lang, "name_browser_cache")))
+	ui.warn(T(lang, "browser_warning"))
+	
+	live := ui.track(T(lang, "name_browser_cache"), T(lang, "working"), T(lang, "files_n"))
+	list := cleanBrowserCaches(browserCachePaths(), live.setCount)
+	live.stopClear()
+	
+	removed, freed, skipped, present, errs := foldStats(list)
+	if present > 0 || removed > 0 {
+		m := msg{"done_browser_cache", []any{removed, size(freed), skipped}}
+		rep.addDone(m)
+		ui.ok(m.Text(lang))
+	} else if len(errs) == 0 {
+		m := msg{"done_missing", []any{tr("name_browser_cache")}}
+		rep.addDone(m)
+		ui.warn(m.Text(lang))
+	}
+	for _, e := range errs {
+		m := msg{"fail_clean", []any{tr("name_browser_cache"), errDetail(e)}}
+		rep.addFail(m)
+		ui.err(m.Text(lang))
+	}
+}
+
+func runFlushDNSUI(lang Lang, ui *UI, rep *Report) {
+	ui.step(T(lang, "running", T(lang, "name_flush_dns")))
+	
+	live := ui.track(T(lang, "name_flush_dns"), T(lang, "working"), "")
+	err := flushDNS()
+	live.stopClear()
+	
+	if err != nil {
+		m := msg{"fail_cmd", []any{tr("name_flush_dns"), -1, errDetail(err)}}
+		rep.addFail(m)
+		ui.err(m.Text(lang))
+		return
+	}
+	
+	m := msg{"done_flush_dns", nil}
+	rep.addDone(m)
+	ui.ok(m.Text(lang))
+	
+	fmt.Fprintln(ui.out)
+	if !isYes(ui.Ask("  " + T(lang, "winsock_confirm"))) {
+		return
+	}
+	
+	live = ui.track(T(lang, "name_winsock_reset"), T(lang, "working"), "")
+	err = resetWinsock()
+	live.stopClear()
+	
+	if err != nil {
+		m := msg{"fail_cmd", []any{tr("name_winsock_reset"), -1, errDetail(err)}}
+		rep.addFail(m)
+		ui.err(m.Text(lang))
+		return
+	}
+	
+	m = msg{"done_winsock_reset", nil}
+	rep.addDone(m)
+	ui.ok(m.Text(lang))
 }
 
 func runStartupUI(lang Lang, ui *UI, rep *Report) {
