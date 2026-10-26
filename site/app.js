@@ -97,7 +97,14 @@ var copy = {
         diagnostic_network_action: "Rede: Flush DNS, Winsock reset (com confirmação)",
         diagnostic_not: "NÃO oferece: limpa-registo, percentagens falsas, matar processos, esvaziar Reciclagem por omissão, desativar SysMain.",
         foot: "Daniel Marcos · MIT · 2026",
-        theme: "Tema"
+        theme: "Tema",
+        nav_home: "Início",
+        nav_commands: "Comandos CMD",
+        back_home: "Voltar ao início",
+        cmd_title: "Comandos CMD para Técnicos",
+        cmd_lead: "Referência rápida de comandos Windows. Clique num comando para copiar para a área de transferência.",
+        cmd_search_placeholder: "Procurar comandos...",
+        cmd_no_results: "Nenhum comando encontrado."
       },
       en: {
         title: "SpeedDisc — portable maintenance",
@@ -197,7 +204,14 @@ var copy = {
         diagnostic_network_action: "Network: Flush DNS, Winsock reset (with confirmation)",
         diagnostic_not: "Does NOT offer: registry cleaner, fake percentages, kill processes, empty Recycle Bin by default, disable SysMain.",
         foot: "Daniel Marcos · MIT · 2026",
-        theme: "Theme"
+        theme: "Theme",
+        nav_home: "Home",
+        nav_commands: "CMD Commands",
+        back_home: "Back to home",
+        cmd_title: "CMD Commands for Technicians",
+        cmd_lead: "Quick reference for Windows commands. Click a command to copy to clipboard.",
+        cmd_search_placeholder: "Search commands...",
+        cmd_no_results: "No commands found."
       }
     };
 
@@ -230,6 +244,10 @@ var copy = {
       document.querySelectorAll("[data-i18n-alt]").forEach(function (el) {
         var key = el.getAttribute("data-i18n-alt");
         if (table[key]) el.setAttribute("alt", table[key]);
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
+        var key = el.getAttribute("data-i18n-placeholder");
+        if (table[key]) el.setAttribute("placeholder", table[key]);
       });
       document.getElementById("btn-pt").setAttribute("aria-pressed", lang === "pt" ? "true" : "false");
       document.getElementById("btn-en").setAttribute("aria-pressed", lang === "en" ? "true" : "false");
