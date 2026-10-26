@@ -27,7 +27,7 @@
       if (meta) meta.setAttribute("content", t === "dark" ? "#121614" : "#f3f0e8");
     })();
   </script>
-  <link rel="stylesheet" href="/style.css?v=0.3.1">
+  <link rel="stylesheet" href="/style.css?v=0.4.0">
   
 </head>
 <body>
@@ -39,6 +39,8 @@
         <a href="#pacotes" data-i18n="nav_packages">Pacotes</a>
         <a href="#limites" data-i18n="nav_limits">Limites</a>
         <a href="#correr" data-i18n="nav_run">Como correr</a>
+        <a href="#kits" data-i18n="nav_kits">Kits / Perfis</a>
+        <a href="#smartscreen" data-i18n="nav_smartscreen">SmartScreen</a>
         <a href="#obter" data-i18n="nav_get">Obter</a>
       </nav>
       <div class="tools">
@@ -60,7 +62,7 @@
         <h1 data-i18n="hero_title">Menos ruído no Windows, sem promessas vazias.</h1>
         <p class="lead" data-i18n="hero_lead">O SpeedDisc é um único ficheiro portátil. Limpa lixo seguro, pode correr o SFC e o DISM, e escreve um relatório curto do que encontrou, do que fez e do que falhou.</p>
         <div class="actions">
-          <a class="btn" href="https://github.com/danielcodemoz/speeddisc/releases/download/v0.3.1/SpeedDisc.exe">
+          <a class="btn" href="https://github.com/danielcodemoz/speeddisc/releases/download/v0.4.0/SpeedDisc.exe">
             <i data-lucide="download"></i>
             <span data-i18n="download">Descarregar SpeedDisc.exe</span>
           </a>
@@ -69,10 +71,10 @@
             <span data-i18n="source">Código fonte</span>
           </a>
         </div>
-        <p class="fine" data-i18n="hero_note">Versão 0.3.1 · um executável · sem instalador · licença MIT · Windows de 64 bits.</p>
+        <p class="fine" data-i18n="hero_note">Versão 0.4.0 · um executável · sem instalador · licença MIT · Windows de 64 bits.</p>
       </div>
       <figure class="hero-shot">
-        <img src="/assets/speeddisc-console.png?v=0.3.1" width="1314" height="1323" alt="Ecrã da consola do SpeedDisc em português" data-i18n-alt="hero_image_alt">
+        <img src="/assets/speeddisc-console.png?v=0.4.0" width="1314" height="1323" alt="Ecrã da consola do SpeedDisc em português" data-i18n-alt="hero_image_alt">
         <figcaption data-i18n="hero_caption">A consola mostra os pacotes e as ações disponíveis, antes de escolher o que executar.</figcaption>
       </figure>
     </div>
@@ -171,14 +173,132 @@
       </div>
     </section>
 
+    <section id="kits">
+      <div class="wrap">
+        <h2 data-i18n="kits_title">Kits e Perfis</h2>
+        <p class="sub" data-i18n="kits_lead">Pequenos launchers (.cmd) que executam SpeedDisc.exe com perfis pré-configurados. Copie o launcher + SpeedDisc.exe para a mesma pasta.</p>
+        <p class="fine" data-i18n="kits_one_exe">UM SÓ SpeedDisc.exe — os launchers apenas o chamam com opções diferentes.</p>
+        
+        <div class="grid kits">
+          <article class="card kit">
+            <h3 data-i18n="kit_escola_name">SpeedDisc-Escola</h3>
+            <p data-i18n="kit_escola_what">Limpeza rápida sem operações longas. Para escolas e contextos onde o tempo é limitado.</p>
+            <p class="small"><strong>Faz:</strong> <span data-i18n="kit_escola_does">Temporários, cache WU, miniaturas, plano Alto desempenho</span></p>
+            <p class="small"><strong>Não faz:</strong> <span data-i18n="kit_escola_not">SEM SFC/DISM (demoram). Não desativa arranque nem esvazia Reciclagem.</span></p>
+            <div class="actions">
+              <a class="btn small" href="https://github.com/danielcodemoz/speeddisc/releases/latest/download/SpeedDisc-Escola.cmd">
+                <i data-lucide="download"></i>
+                <span data-i18n="kit_download_launcher">Descarregar launcher</span>
+              </a>
+            </div>
+          </article>
+
+          <article class="card kit">
+            <h3 data-i18n="kit_pos_name">SpeedDisc-PosFormatacao</h3>
+            <p data-i18n="kit_pos_what">Manutenção profunda após instalação do Windows. Inclui SFC e DISM (podem demorar 15-30 min).</p>
+            <p class="small"><strong>Faz:</strong> <span data-i18n="kit_pos_does">Limpeza completa, SFC, DISM, ponto de restauro</span></p>
+            <p class="small"><strong>Não faz:</strong> <span data-i18n="kit_pos_not">Não desativa arranque nem esvazia Reciclagem.</span></p>
+            <div class="actions">
+              <a class="btn small" href="https://github.com/danielcodemoz/speeddisc/releases/latest/download/SpeedDisc-PosFormatacao.cmd">
+                <i data-lucide="download"></i>
+                <span data-i18n="kit_download_launcher">Descarregar launcher</span>
+              </a>
+            </div>
+          </article>
+
+          <article class="card kit">
+            <h3 data-i18n="kit_sover_name">SpeedDisc-SoVer</h3>
+            <p data-i18n="kit_sover_what">Inventário apenas: lê sistema, arranque e discos. NÃO altera nada.</p>
+            <p class="small"><strong>Faz:</strong> <span data-i18n="kit_sover_does">OS, CPU, memória, discos, arranque, estimativa de temporários</span></p>
+            <p class="small"><strong>Não faz:</strong> <span data-i18n="kit_sover_not">Não altera NADA no sistema. Apenas lê e escreve relatório.</span></p>
+            <div class="actions">
+              <a class="btn small" href="https://github.com/danielcodemoz/speeddisc/releases/latest/download/SpeedDisc-SoVer.cmd">
+                <i data-lucide="download"></i>
+                <span data-i18n="kit_download_launcher">Descarregar launcher</span>
+              </a>
+            </div>
+          </article>
+
+          <article class="card kit">
+            <h3 data-i18n="kit_usb_name">SpeedDisc-USB</h3>
+            <p data-i18n="kit_usb_what">Perfil para pen de técnico: limpeza rápida para visitas de suporte.</p>
+            <p class="small"><strong>Faz:</strong> <span data-i18n="kit_usb_does">Temporários, cache WU, miniaturas, plano Alto desempenho</span></p>
+            <p class="small"><strong>Não faz:</strong> <span data-i18n="kit_usb_not">SEM SFC/DISM. Não desativa arranque nem esvazia Reciclagem.</span></p>
+            <div class="actions">
+              <a class="btn small" href="https://github.com/danielcodemoz/speeddisc/releases/latest/download/SpeedDisc-USB.cmd">
+                <i data-lucide="download"></i>
+                <span data-i18n="kit_download_launcher">Descarregar launcher</span>
+              </a>
+            </div>
+          </article>
+        </div>
+
+        <p class="fine" style="margin-top: 2rem; text-align: center;">
+          <span data-i18n="kit_need_exe">Também precisa de:</span> 
+          <a href="https://github.com/danielcodemoz/speeddisc/releases"><strong>SpeedDisc.exe</strong></a>
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 data-i18n="diagnostic_title">Capacidades de diagnóstico</h2>
+        <p class="sub" data-i18n="diagnostic_lead">SpeedDisc oferece ações de diagnóstico e manutenção sem alterar o sistema:</p>
+        <div class="split">
+          <div class="panel">
+            <h3><i data-lucide="search"></i> <span>Diagnóstico</span></h3>
+            <ul class="clean">
+              <li><i data-lucide="check"></i><span data-i18n="diagnostic_inventory">Inventário: sistema, CPU, memória, discos, arranque</span></li>
+              <li><i data-lucide="check"></i><span data-i18n="diagnostic_topfiles">Ficheiros maiores: lista os top 20 ficheiros</span></li>
+              <li><i data-lucide="check"></i><span data-i18n="diagnostic_startup">Arranque: lista Run keys e pastas Startup</span></li>
+              <li><i data-lucide="clock"></i><span data-i18n="diagnostic_network">Rede: (planeado) snapshot IP, DNS, gateway</span></li>
+              <li><i data-lucide="clock"></i><span data-i18n="diagnostic_battery">Bateria: (planeado) relatório powercfg</span></li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3><i data-lucide="wrench"></i> <span>Manutenção</span></h3>
+            <ul class="clean">
+              <li><i data-lucide="check"></i><span data-i18n="diagnostic_cleanup">Limpeza segura: temporários, cache WU/DO</span></li>
+              <li><i data-lucide="check"></i><span data-i18n="diagnostic_repair">Reparação: SFC, DISM, Component Store</span></li>
+              <li><i data-lucide="check"></i><span data-i18n="diagnostic_network_action">Rede: Flush DNS, Winsock reset</span></li>
+            </ul>
+            <p class="fine" style="margin-top: 1rem;" data-i18n="diagnostic_not">NÃO oferece: limpa-registo, percentagens falsas, matar processos, esvaziar Reciclagem por omissão, desativar SysMain.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="smartscreen">
+      <div class="wrap">
+        <h2 data-i18n="smartscreen_title">Aviso do SmartScreen esperado</h2>
+        <div class="split">
+          <div class="panel">
+            <h3><i data-lucide="shield-alert"></i> <span data-i18n="smartscreen_why">O executável não está assinado por escolha</span></h3>
+            <p data-i18n="smartscreen_what">O Windows vai mostrar "O Windows protegeu o PC" quando executar o ficheiro pela primeira vez. Isto é normal e esperado para programas sem certificado comercial.</p>
+            <p><strong data-i18n="smartscreen_how">Como proceder:</strong></p>
+            <ol>
+              <li data-i18n="smartscreen_step1">Clique em "Mais informações"</li>
+              <li data-i18n="smartscreen_step2">Clique em "Executar mesmo assim"</li>
+            </ol>
+            <p class="fine" data-i18n="smartscreen_improve">A reputação do ficheiro melhora com o número de transferências ao longo do tempo. Eventualmente o SmartScreen pode deixar de avisar, mas o aviso inicial é previsto e seguro de ignorar quando o ficheiro vem do GitHub oficial.</p>
+          </div>
+          <div class="panel">
+            <h3><i data-lucide="briefcase"></i> <span data-i18n="it_desk_title">Para escolas e secretárias de IT</span></h3>
+            <p data-i18n="it_desk_copy">Frase de suporte para técnicos que entregam uma pen com o SpeedDisc:</p>
+            <blockquote data-i18n="it_desk_sentence">"Este programa mostra um aviso do Windows porque não tem assinatura digital paga. É código aberto do GitHub. Clique em 'Mais informações' e depois 'Executar mesmo assim'. O relatório fica ao lado do ficheiro."</blockquote>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="obter">
       <div class="wrap">
         <div class="card get">
           <div>
             <h2 data-i18n="get_title">Obter o ficheiro</h2>
-            <p class="sub" data-i18n="get_lead">SpeedDisc.exe, versão 0.3.1. Se a transferência direta falhar, a página de versões tem o mesmo ficheiro.</p>
+            <p class="sub" data-i18n="get_lead">SpeedDisc.exe, versão 0.4.0. Transfira sempre das Releases do GitHub.</p>
             <div class="actions">
-              <a class="btn" href="https://github.com/danielcodemoz/speeddisc/releases/download/v0.3.1/SpeedDisc.exe">
+              <a class="btn" href="https://github.com/danielcodemoz/speeddisc/releases">
                 <i data-lucide="download"></i>
                 <span data-i18n="download">Descarregar SpeedDisc.exe</span>
               </a>
@@ -187,7 +307,6 @@
               </a>
             </div>
           </div>
-          <p class="fine" data-i18n="smartscreen">O ficheiro não está assinado. O SmartScreen vai avisar até haver um certificado de assinatura de código pago. Não é um instalador: é um programa de consola de código aberto.</p>
         </div>
       </div>
     </section>
@@ -205,7 +324,7 @@
   </div>
 
   <script src="https://unpkg.com/lucide@0.511.0/dist/umd/lucide.min.js"></script>
-  <script src="/app.js?v=0.3.1"></script>
+  <script src="/app.js?v=0.4.0"></script>
 
 </body>
 </html>

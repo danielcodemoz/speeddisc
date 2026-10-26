@@ -8,6 +8,8 @@ Sítio: https://speeddisc.danielpro.dev
 Código: https://github.com/danielcodemoz/speeddisc
 Licença: [MIT](LICENSE)
 
+Versão atual: **0.4.0**
+
 ## O que faz
 
 - Pede administrador **antes** do menu, pelo manifesto `requireAdministrator` embutido no executável.
@@ -39,12 +41,103 @@ Ficheiros em uso são ignorados, não forçados.
 
 ## Como correr
 
+### Modo interativo
+
 1. Transfira `SpeedDisc.exe` (ou compile). Um ficheiro chega.
 2. Duplo clique. O Windows pede administrador antes de aparecer o menu.
 3. Escolha um pacote ou números separados por vírgulas. `Q` sai.
 4. Leia `SpeedDisc-report-*.txt` ao lado do executável (ou na pasta atual, se ali não der para escrever). O ficheiro é UTF-8.
 
-O executável não está assinado. O SmartScreen vai avisar até o ficheiro ser assinado com um certificado de assinatura de código pago. Não há assinatura falsa nem atalho de reputação: o aviso é esperado. Não é um instalador escondido: o código está neste repositório.
+### Modo não-interativo (novo em 0.4.0)
+
+Para correr sem o menu, a partir da linha de comandos ou de uma pen USB:
+
+```cmd
+SpeedDisc.exe -q quick
+SpeedDisc.exe -q deep
+SpeedDisc.exe -q full
+```
+
+Também aceita números de pacote:
+
+```cmd
+SpeedDisc.exe -q 1
+SpeedDisc.exe -q 2
+```
+
+No modo não-interativo:
+- Não há avisos nem pedidos de confirmação (exceto se a ação normalmente pedir escolhas, como Arranque)
+- Se o ponto de restauro falhar, o resto continua e fica registado no relatório
+- O código de saída é 0 quando tudo corre bem, diferente de 0 se houver erros graves
+
+### Aviso do SmartScreen (esperado)
+
+**O executável não está assinado por escolha.** Certificados de assinatura de código custam centenas de euros por ano. A confiança vem do código aberto (licença MIT, fonte no GitHub) em vez de um certificado comercial pago.
+
+O Windows vai mostrar **"O Windows protegeu o PC"** quando executar pela primeira vez. Isto é **normal e esperado**:
+
+1. Clique em **"Mais informações"**
+2. Clique em **"Executar mesmo assim"**
+
+A reputação do ficheiro melhora com o número de transferências ao longo do tempo. Eventualmente o SmartScreen pode deixar de avisar, mas o aviso inicial é previsto e seguro de ignorar quando o ficheiro vem das [Releases oficiais do GitHub](https://github.com/danielcodemoz/speeddisc/releases).
+
+**Não há assinatura falsa** nem tentativa de contornar o aviso. Não é um instalador escondido: o código está neste repositório.
+
+#### Kits e perfis
+
+O SpeedDisc oferece **launchers pré-configurados** (`.cmd`) para diferentes contextos de uso. Todos chamam o mesmo `SpeedDisc.exe` com opções `-q` diferentes:
+
+| Launcher | Perfil | Pacote | Demora |
+|----------|--------|--------|--------|
+| **SpeedDisc-Escola.cmd** | Escolas: limpeza rápida sem operações longas | Quick | ~2-5 min |
+| **SpeedDisc-PosFormatacao.cmd** | Pós-instalação: manutenção profunda com SFC+DISM | Deep | ~20-40 min |
+| **SpeedDisc-SoVer.cmd** | Inventário apenas: **não altera nada** | Look | ~1 min |
+| **SpeedDisc-USB.cmd** | Pen de técnico: limpeza rápida | Quick | ~2-5 min |
+
+**Como usar:**
+1. Copie o launcher `.cmd` + `SpeedDisc.exe` para a mesma pasta
+2. Duplo clique no launcher `.cmd`
+3. Leia o relatório `SpeedDisc-report-*.txt`
+
+Todos os launchers estão nas [Releases do GitHub](https://github.com/danielcodemoz/speeddisc/releases).
+
+#### Capacidades de diagnóstico
+
+O SpeedDisc (menu interativo ou via `-q`) oferece:
+
+**Diagnóstico (sem alterar o sistema):**
+- Inventário: OS, CPU, memória, discos, arranque (pacote Só ver)
+- Ficheiros maiores: lista top 20 ficheiros da unidade do sistema
+- Arranque: lista Run keys e pastas Startup (sem desativar)
+- Rede: *(planeado)* snapshot IP, DNS, gateway, ping
+- Bateria: *(planeado)* relatório powercfg
+
+**Manutenção (com confirmação):**
+- Limpeza segura: temporários, cache WU/DO, miniaturas, relatórios de erros
+- Reparação: SFC, DISM, limpeza Component Store (WinSxS)
+- Rede: Flush DNS, Winsock reset (segunda confirmação)
+
+**Não oferece:** limpa-registo, percentagens falsas de velocidade, matar processos, esvaziar Reciclagem por omissão, desativar SysMain.
+
+### Opcional: Launcher explicativo
+
+O ficheiro `SpeedDisc-launch.ps1` é um script PowerShell opcional que explica o aviso do SmartScreen e descarrega/executa o SpeedDisc.exe. **Não é necessário** — pode executar `SpeedDisc.exe` diretamente ou usar os launchers de perfil acima. É apenas uma ajuda para utilizadores que veem o aviso pela primeira vez.
+
+```powershell
+.\SpeedDisc-launch.ps1 -Help
+```
+
+#### Para escolas e secretárias de IT
+
+Frase de suporte para técnicos que entregam uma pen USB com o SpeedDisc a um utilizador final:
+
+> "Este programa mostra um aviso do Windows porque não tem assinatura digital paga. É código aberto do GitHub. Clique em 'Mais informações' e depois 'Executar mesmo assim'. O relatório fica ao lado do ficheiro."
+
+## Arquitetura
+
+**SpeedDisc é e continuará a ser um único executável de consola Go compilado.**
+
+Não é um `.bat`, não é um `.ps1`, não é um instalador. O ficheiro principal é e será sempre `SpeedDisc.exe` (ferramenta de consola Go). O launcher `SpeedDisc-launch.ps1` é opcional e apenas explica o SmartScreen — não substitui nem reimplementa a ferramenta.
 
 ## Como compilar
 
@@ -75,6 +168,40 @@ Um workflow de GitHub Actions pode chamar `./build.sh` e publicar `SpeedDisc.exe
 
 A pasta `site/` é a página estática para https://speeddisc.danielpro.dev. Não faz parte do executável.
 
+## Notas de lançamento
+
+### v0.4.0 (2026-10-26)
+
+**Novidades:**
+- Resumo de espaço em disco antes/depois de qualquer operação que altere o sistema
+- Modo não-interativo (`-q` / `--quiet`) com nome ou número de pacote para automatização
+- Nova ação: Limpeza do Component Store (DISM /StartComponentCleanup)
+- Nova ação: Lista dos 20 ficheiros maiores na unidade do sistema (apenas informativo)
+- Nova ação: Limpeza de cache de navegadores (Chrome, Edge, Firefox) com aviso
+- Nova ação: Flush DNS e opcionalmente Winsock reset (com confirmação)
+- Launcher opcional `SpeedDisc-launch.ps1` que explica o SmartScreen (não substitui o .exe)
+
+**Distribuição e Kits:**
+- **Kits pré-configurados:** 4 launchers (.cmd) para diferentes perfis (Escola, Pós-Formatação, Só Ver, USB)
+- Todos os kits chamam o MESMO SpeedDisc.exe com opções `-q` diferentes
+- Documentação de capacidades de diagnóstico: inventário, ficheiros maiores, arranque, rede, bateria
+- Secção "Kits / Perfis" no site com cards para cada perfil
+- Documentação clara sobre SmartScreen no site e README (PT + EN)
+- Confirmação explícita: a ferramenta é e será sempre um .exe Go, nunca .bat/.ps1
+- Assinatura de código ADIADA até certificado OV pago estar disponível (por escolha)
+- Site atualizado com instruções "Mais informações → Executar mesmo assim"
+- Frase de suporte para técnicos de IT que entregam o ficheiro em pen USB
+
+**Mantém:**
+- Filosofia do produto: sem percentagens falsas, sem esvaziar Reciclagem, sem matar processos, sem limpa-registo
+- Ignora ficheiros em uso, pede segunda confirmação para ações destrutivas
+- i18n PT-PT + EN para todas as novas funcionalidades
+- Relatório UTF-8 junto ao executável
+
+### v0.3.1 e anteriores
+
+Versões iniciais com pacotes Rápido/Profundo/Completo, SFC, DISM, arranque, temporários, cache do Windows Update, miniaturas, Delivery Optimization, relatórios de erros, plano de energia Alto desempenho.
+
 ## Licença
 
 MIT. Copyright (c) 2026 Daniel Marcos.
@@ -90,6 +217,8 @@ It is not a “booster” with percentages. There are no invented speed numbers.
 Site: https://speeddisc.danielpro.dev
 Code: https://github.com/danielcodemoz/speeddisc
 License: [MIT](LICENSE)
+
+Current version: **0.4.0**
 
 ## What it does
 
@@ -122,12 +251,103 @@ Files that are in use are skipped, not forced.
 
 ## How to run
 
+### Interactive mode
+
 1. Download `SpeedDisc.exe` (or build it). One file is enough.
 2. Double-click. Windows asks for administrator before the menu appears.
 3. Pick a package or comma-separated numbers. `Q` quits.
 4. Read `SpeedDisc-report-*.txt` next to the executable (or in the current directory if that folder is not writable). The file is UTF-8.
 
-The executable is unsigned. SmartScreen will warn until the file is signed with a paid code-signing certificate. There is no fake signature and no reputation shortcut: the warning is expected. It is not a hidden installer: the source is this repository.
+### Non-interactive mode (new in 0.4.0)
+
+To run without the menu, from the command line or a USB stick:
+
+```cmd
+SpeedDisc.exe -q quick
+SpeedDisc.exe -q deep
+SpeedDisc.exe -q full
+```
+
+Package numbers also work:
+
+```cmd
+SpeedDisc.exe -q 1
+SpeedDisc.exe -q 2
+```
+
+In non-interactive mode:
+- No prompts or confirmations (except for actions that normally require user choices, like Startup)
+- If the restore point fails, the rest continues and is logged in the report
+- Exit code is 0 when everything succeeds, non-zero on serious errors
+
+### SmartScreen warning (expected)
+
+**The executable is unsigned by choice.** Code-signing certificates cost hundreds of euros per year. Trust comes from open source (MIT license, source on GitHub) instead of a paid commercial certificate.
+
+Windows will show **"Windows protected your PC"** when you run it for the first time. This is **normal and expected**:
+
+1. Click **"More info"**
+2. Click **"Run anyway"**
+
+The file's reputation improves with the number of downloads over time. Eventually SmartScreen may stop warning, but the initial warning is expected and safe to bypass when the file comes from the [official GitHub Releases](https://github.com/danielcodemoz/speeddisc/releases).
+
+**There is no fake signature** or attempt to bypass the warning. It is not a hidden installer: the source is in this repository.
+
+### Kits and profiles
+
+SpeedDisc offers **pre-configured launchers** (`.cmd`) for different use cases. All of them call the same `SpeedDisc.exe` with different `-q` options:
+
+| Launcher | Profile | Package | Duration |
+|----------|---------|---------|----------|
+| **SpeedDisc-Escola.cmd** | Schools: quick cleanup without long operations | Quick | ~2-5 min |
+| **SpeedDisc-PosFormatacao.cmd** | Post-installation: deep maintenance with SFC+DISM | Deep | ~20-40 min |
+| **SpeedDisc-SoVer.cmd** | Inventory only: **changes nothing** | Look | ~1 min |
+| **SpeedDisc-USB.cmd** | Technician USB stick: quick cleanup | Quick | ~2-5 min |
+
+**How to use:**
+1. Copy the `.cmd` launcher + `SpeedDisc.exe` to the same folder
+2. Double-click the `.cmd` launcher
+3. Read the report `SpeedDisc-report-*.txt`
+
+All launchers are in the [GitHub Releases](https://github.com/danielcodemoz/speeddisc/releases).
+
+#### Diagnostic capabilities
+
+SpeedDisc (interactive menu or via `-q`) offers:
+
+**Diagnostics (without changing the system):**
+- Inventory: OS, CPU, memory, disks, startup (Look only package)
+- Large files: lists top 20 files on system drive
+- Startup: lists Run keys and Startup folders (without disabling)
+- Network: *(planned)* snapshot IP, DNS, gateway, ping
+- Battery: *(planned)* powercfg report
+
+**Maintenance (with confirmation):**
+- Safe cleanup: temp files, WU/DO cache, thumbnails, error reports
+- Repair: SFC, DISM, Component Store cleanup (WinSxS)
+- Network: Flush DNS, Winsock reset (second confirmation)
+
+**Does not offer:** registry cleaner, fake speed percentages, kill processes, empty Recycle Bin by default, disable SysMain.
+
+#### Optional: Explanatory launcher
+
+The file `SpeedDisc-launch.ps1` is an optional PowerShell script that explains the SmartScreen warning and downloads/runs SpeedDisc.exe. **It is not required** — you can run `SpeedDisc.exe` directly or use the profile launchers above. It's just a helper for users seeing the warning for the first time.
+
+```powershell
+.\SpeedDisc-launch.ps1 -Help
+```
+
+#### For schools and IT desks
+
+Support sentence for technicians handing out a USB stick with SpeedDisc to an end user:
+
+> "This program shows a Windows warning because it has no paid digital signature. It's open source from GitHub. Click 'More info' then 'Run anyway'. The report will be saved next to the file."
+
+## Architecture
+
+**SpeedDisc is and will remain a single Go console executable.**
+
+It is not a `.bat`, not a `.ps1`, not an installer. The main file is and always will be `SpeedDisc.exe` (a Go console tool). The launcher `SpeedDisc-launch.ps1` is optional and only explains SmartScreen — it does not replace or reimplement the tool.
 
 ## How to build
 
@@ -157,6 +377,40 @@ python verify_pe.py SpeedDisc.exe
 A GitHub Actions workflow can call `./build.sh` and upload `SpeedDisc.exe` as an artifact. The intended file is `.github/workflows/build.yml`.
 
 The `site/` folder is the static page for https://speeddisc.danielpro.dev. It is not part of the executable.
+
+## Release notes
+
+### v0.4.0 (2026-10-26)
+
+**New features:**
+- Before/after disk space summary for any operation that changes the system
+- Non-interactive mode (`-q` / `--quiet`) with package name or number for automation
+- New action: Component Store cleanup (DISM /StartComponentCleanup)
+- New action: List top 20 largest files on the system drive (informational only)
+- New action: Browser cache cleanup (Chrome, Edge, Firefox) with warning
+- New action: Flush DNS and optionally Winsock reset (with confirmation)
+- Optional launcher `SpeedDisc-launch.ps1` that explains SmartScreen (does not replace the .exe)
+
+**Distribution and Kits:**
+- **Pre-configured kits:** 4 launchers (.cmd) for different profiles (School, Post-Install, Look Only, USB)
+- All kits call the SAME SpeedDisc.exe with different `-q` options
+- Diagnostic capabilities documented: inventory, large files, startup, network, battery
+- "Kits / Profiles" section on site with cards for each profile
+- Clear SmartScreen documentation on site and README (PT + EN)
+- Explicit confirmation: the tool is and will always be a Go .exe, never .bat/.ps1
+- Code signing DEFERRED until paid OV certificate is available (by choice)
+- Site updated with "More info → Run anyway" instructions
+- Support sentence for IT technicians handing out the file on USB stick
+
+**Maintains:**
+- Product philosophy: no fake speed percentages, no emptying Recycle Bin, no killing processes, no registry cleaner
+- Skips files in use, asks for second confirmation on destructive actions
+- PT-PT + EN i18n for all new features
+- UTF-8 report next to the executable
+
+### v0.3.1 and earlier
+
+Initial releases with Quick/Deep/Full packages, SFC, DISM, startup, temp files, Windows Update cache, thumbnails, Delivery Optimization, error reports, High performance power plan.
 
 ## License
 

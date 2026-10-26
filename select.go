@@ -20,6 +20,10 @@ const (
 	ActSFC
 	ActDISM
 	ActStartup
+	ActComponentCleanup
+	ActTopFiles
+	ActBrowserCache
+	ActFlushDNS
 )
 
 var actionOrder = []Action{
@@ -34,6 +38,10 @@ var actionOrder = []Action{
 	ActSFC,
 	ActDISM,
 	ActStartup,
+	ActComponentCleanup,
+	ActTopFiles,
+	ActBrowserCache,
+	ActFlushDNS,
 }
 
 type menuItem struct {
@@ -66,6 +74,10 @@ func menuCatalog() []menuItem {
 		{13, "opt_restore", "desc_restore", []Action{ActRestore}, "act"},
 		{14, "opt_startup", "desc_startup", []Action{ActStartup}, "act"},
 		{15, "opt_info", "desc_info", []Action{ActInfo}, "act"},
+		{16, "opt_component_cleanup", "desc_component_cleanup", []Action{ActComponentCleanup}, "act"},
+		{17, "opt_top_files", "desc_top_files", []Action{ActTopFiles}, "act"},
+		{18, "opt_browser_cache", "desc_browser_cache", []Action{ActBrowserCache}, "act"},
+		{19, "opt_flush_dns", "desc_flush_dns", []Action{ActFlushDNS}, "act"},
 	}
 }
 
