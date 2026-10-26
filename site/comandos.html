@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-PT" data-theme="light" translate="no" class="notranslate">
+<head>
+  <meta charset="utf-8">
+  <meta name="google" content="notranslate">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comandos CMD — SpeedDisc</title>
+  <meta name="description" content="Referência rápida de comandos Windows CMD para técnicos de informática. Copia para a área de transferência com um clique.">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="canonical" href="https://speeddisc.danielpro.dev/comandos.html">
+  <meta name="theme-color" content="#f3f0e8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,650&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    (function () {
+      var t = localStorage.getItem("sd-theme");
+      if (t !== "light" && t !== "dark") {
+        t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", t === "dark" ? "#121614" : "#f3f0e8");
+    })();
+  </script>
+  <link rel="stylesheet" href="/style.css?v=0.4.0">
+  <style>
+    .cmd-search {
+      width: 100%;
+      max-width: 600px;
+      padding: 0.85rem 1.15rem;
+      font-size: 1.05rem;
+      border: 2px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      color: var(--ink);
+      margin: 1.2rem 0 1.2rem;
+      font-family: Outfit, sans-serif;
+      transition: all 0.2s;
+    }
+    .cmd-search:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--wash);
+    }
+    .filter-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin: 1.5rem 0 1.8rem;
+    }
+    .filter-chip {
+      padding: 0.55rem 1.1rem;
+      border: 2px solid var(--line);
+      border-radius: 999px;
+      background: var(--card);
+      color: var(--ink);
+      font-size: 0.92rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: Outfit, sans-serif;
+    }
+    .filter-chip:hover {
+      border-color: var(--accent);
+      background: var(--wash);
+    }
+    .filter-chip.active {
+      background: var(--accent);
+      color: var(--on-accent);
+      border-color: var(--accent);
+    }
+    .cmd-grid {
+      display: grid;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .cmd-row {
+      background: var(--card);
+      border: 2px solid var(--line);
+      border-radius: 14px;
+      padding: 1.15rem 1.3rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    .cmd-row:hover {
+      border-color: var(--accent);
+      transform: translateX(4px);
+      box-shadow: -4px 0 0 var(--accent), 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .cmd-row.copied {
+      border-color: var(--accent);
+      background: var(--wash);
+    }
+    .cmd-icon {
+      width: 2.8rem;
+      height: 2.8rem;
+      border-radius: 10px;
+      background: var(--wash);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .cmd-icon svg {
+      width: 1.4rem;
+      height: 1.4rem;
+      color: var(--accent);
+    }
+    .cmd-content {
+      min-width: 0;
+    }
+    .cmd-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .cmd-name {
+      font-family: 'Courier New', Consolas, monospace;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .cmd-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: var(--soft);
+      color: var(--muted);
+    }
+    .cmd-desc {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+    .copy-feedback {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: var(--accent);
+      color: var(--on-accent);
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .cmd-row.copied .copy-feedback {
+      opacity: 1;
+    }
+    .no-results {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--muted);
+    }
+    .no-results svg {
+      width: 3rem;
+      height: 3rem;
+      opacity: 0.3;
+      margin-bottom: 1rem;
+    }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--accent);
+      text-decoration: none;
+      margin-bottom: 1.2rem;
+      font-weight: 500;
+      transition: gap 0.2s;
+    }
+    .back-link:hover {
+      gap: 0.7rem;
+    }
+    .back-link svg {
+      width: 1.2rem;
+      height: 1.2rem;
+    }
+    .filter-label {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 0.6rem;
+      font-weight: 500;
+    }
+    @media (max-width: 720px) {
+      .cmd-row {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+      }
+      .cmd-icon {
+        width: 2.4rem;
+        height: 2.4rem;
+      }
+      .cmd-icon svg {
+        width: 1.2rem;
+        height: 1.2rem;
+      }
+      .filter-chips {
+        gap: 0.5rem;
+      }
+      .filter-chip {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap bar">
+      <a class="brand" href="/"><img src="/favicon.ico" width="32" height="32" alt=""><span class="word">SpeedDisc</span></a>
+      <nav>
+        <a href="/" data-i18n="nav_home">Início</a>
+        <a href="/comandos.html" data-i18n="nav_commands">Comandos CMD</a>
+      </nav>
+      <div class="tools">
+        <div class="seg" role="group" aria-label="Idioma">
+          <button type="button" id="btn-pt" data-set-lang="pt" aria-pressed="true">PT</button>
+          <button type="button" id="btn-en" data-set-lang="en" aria-pressed="false">EN</button>
+        </div>
+        <button class="iconbtn" id="theme" type="button" aria-label="Tema">
+          <i data-lucide="moon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding-top: 2rem;">
+    <div class="wrap">
+      <a href="/" class="back-link">
+        <i data-lucide="arrow-left"></i>
+        <span data-i18n="back_home">Voltar ao início</span>
+      </a>
+      
+      <h1 data-i18n="cmd_title">Comandos CMD para Técnicos</h1>
+      <p class="sub" data-i18n="cmd_lead">Referência rápida de comandos Windows. Clique num comando para copiar para a área de transferência.</p>
+      
+      <input 
+        type="text" 
+        class="cmd-search" 
+        id="search" 
+        placeholder="Procurar comandos..."
+        data-i18n-placeholder="cmd_search_placeholder"
+      >
+      
+      <div class="filter-label" data-i18n="cmd_filter_label">Filtrar por categoria:</div>
+      <div class="filter-chips" id="filter-chips"></div>
+      
+      <div class="cmd-grid" id="cmd-grid"></div>
+      <div class="no-results" id="no-results" style="display: none;">
+        <i data-lucide="search-x"></i>
+        <p data-i18n="cmd_no_results">Nenhum comando encontrado.</p>
+      </div>
+    </div>
+  </main>
+
+  <div class="wrap">
+    <footer style="margin-top: 3rem;">
+      <span data-i18n="foot">Daniel Marcos · MIT · 2026</span>
+      <span>
+        <a href="https://github.com/danielcodemoz/speeddisc">GitHub</a>
+        ·
+        <a href="https://speeddisc.danielpro.dev/">speeddisc.danielpro.dev</a>
+      </span>
+    </footer>
+  </div>
+
+  <script src="https://unpkg.com/lucide@0.511.0/dist/umd/lucide.min.js"></script>
+  <script src="/app.js?v=0.4.0"></script>
+  <script src="/comandos.js?v=0.4.0"></script>
+</body>
+</html>

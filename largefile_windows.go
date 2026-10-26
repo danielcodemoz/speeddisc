@@ -18,11 +18,9 @@ type largeFile struct {
 func findTopLargeFiles(root string, topN int, timeout time.Duration) []largeFile {
 	deadline := time.Now().Add(timeout)
 	var files []largeFile
-	var stopped bool
 
 	filepath.WalkDir(root, func(path string, d fs.DirEntry, walkErr error) error {
 		if time.Now().After(deadline) {
-			stopped = true
 			return fs.SkipAll
 		}
 		if walkErr != nil {
