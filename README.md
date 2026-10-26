@@ -70,7 +70,38 @@ No modo não-interativo:
 - Se o ponto de restauro falhar, o resto continua e fica registado no relatório
 - O código de saída é 0 quando tudo corre bem, diferente de 0 se houver erros graves
 
-O executável não está assinado. O SmartScreen vai avisar até o ficheiro ser assinado com um certificado de assinatura de código pago. Não há assinatura falsa nem atalho de reputação: o aviso é esperado. Não é um instalador escondido: o código está neste repositório.
+### Aviso do SmartScreen (esperado)
+
+**O executável não está assinado por escolha.** Certificados de assinatura de código custam centenas de euros por ano. A confiança vem do código aberto (licença MIT, fonte no GitHub) em vez de um certificado comercial pago.
+
+O Windows vai mostrar **"O Windows protegeu o PC"** quando executar pela primeira vez. Isto é **normal e esperado**:
+
+1. Clique em **"Mais informações"**
+2. Clique em **"Executar mesmo assim"**
+
+A reputação do ficheiro melhora com o número de transferências ao longo do tempo. Eventualmente o SmartScreen pode deixar de avisar, mas o aviso inicial é previsto e seguro de ignorar quando o ficheiro vem das [Releases oficiais do GitHub](https://github.com/danielcodemoz/speeddisc/releases).
+
+**Não há assinatura falsa** nem tentativa de contornar o aviso. Não é um instalador escondido: o código está neste repositório.
+
+#### Opcional: Launcher script
+
+O ficheiro `SpeedDisc-launch.ps1` é um script PowerShell opcional que explica o aviso do SmartScreen e descarrega/executa o SpeedDisc.exe. **Não é necessário** — pode executar `SpeedDisc.exe` diretamente. É apenas uma ajuda para utilizadores que veem o aviso pela primeira vez.
+
+```powershell
+.\SpeedDisc-launch.ps1 -Help
+```
+
+#### Para escolas e secretárias de IT
+
+Frase de suporte para técnicos que entregam uma pen USB com o SpeedDisc a um utilizador final:
+
+> "Este programa mostra um aviso do Windows porque não tem assinatura digital paga. É código aberto do GitHub. Clique em 'Mais informações' e depois 'Executar mesmo assim'. O relatório fica ao lado do ficheiro."
+
+## Arquitetura
+
+**SpeedDisc é e continuará a ser um único executável de consola Go compilado.**
+
+Não é um `.bat`, não é um `.ps1`, não é um instalador. O ficheiro principal é e será sempre `SpeedDisc.exe` (ferramenta de consola Go). O launcher `SpeedDisc-launch.ps1` é opcional e apenas explica o SmartScreen — não substitui nem reimplementa a ferramenta.
 
 ## Como compilar
 
@@ -112,7 +143,14 @@ A pasta `site/` é a página estática para https://speeddisc.danielpro.dev. Nã
 - Nova ação: Lista dos 20 ficheiros maiores na unidade do sistema (apenas informativo)
 - Nova ação: Limpeza de cache de navegadores (Chrome, Edge, Firefox) com aviso
 - Nova ação: Flush DNS e opcionalmente Winsock reset (com confirmação)
-- Suporte para assinatura de código no `build.sh` (requer `CODESIGN_PFX` e `CODESIGN_PASSWORD`)
+- Launcher opcional `SpeedDisc-launch.ps1` que explica o SmartScreen (não substitui o .exe)
+
+**Distribuição:**
+- Documentação clara sobre SmartScreen no site e README (PT + EN)
+- Confirmação explícita: a ferramenta é e será sempre um .exe Go, nunca .bat/.ps1
+- Assinatura de código ADIADA até certificado OV pago estar disponível (por escolha)
+- Site atualizado com instruções "Mais informações → Executar mesmo assim"
+- Frase de suporte para técnicos de IT que entregam o ficheiro em pen USB
 
 **Mantém:**
 - Filosofia do produto: sem percentagens falsas, sem esvaziar Reciclagem, sem matar processos, sem limpa-registo
@@ -202,7 +240,38 @@ In non-interactive mode:
 - If the restore point fails, the rest continues and is logged in the report
 - Exit code is 0 when everything succeeds, non-zero on serious errors
 
-The executable is unsigned. SmartScreen will warn until the file is signed with a paid code-signing certificate. There is no fake signature and no reputation shortcut: the warning is expected. It is not a hidden installer: the source is this repository.
+### SmartScreen warning (expected)
+
+**The executable is unsigned by choice.** Code-signing certificates cost hundreds of euros per year. Trust comes from open source (MIT license, source on GitHub) instead of a paid commercial certificate.
+
+Windows will show **"Windows protected your PC"** when you run it for the first time. This is **normal and expected**:
+
+1. Click **"More info"**
+2. Click **"Run anyway"**
+
+The file's reputation improves with the number of downloads over time. Eventually SmartScreen may stop warning, but the initial warning is expected and safe to bypass when the file comes from the [official GitHub Releases](https://github.com/danielcodemoz/speeddisc/releases).
+
+**There is no fake signature** or attempt to bypass the warning. It is not a hidden installer: the source is in this repository.
+
+#### Optional: Launcher script
+
+The file `SpeedDisc-launch.ps1` is an optional PowerShell script that explains the SmartScreen warning and downloads/runs SpeedDisc.exe. **It is not required** — you can run `SpeedDisc.exe` directly. It's just a helper for users seeing the warning for the first time.
+
+```powershell
+.\SpeedDisc-launch.ps1 -Help
+```
+
+#### For schools and IT desks
+
+Support sentence for technicians handing out a USB stick with SpeedDisc to an end user:
+
+> "This program shows a Windows warning because it has no paid digital signature. It's open source from GitHub. Click 'More info' then 'Run anyway'. The report will be saved next to the file."
+
+## Architecture
+
+**SpeedDisc is and will remain a single Go console executable.**
+
+It is not a `.bat`, not a `.ps1`, not an installer. The main file is and always will be `SpeedDisc.exe` (a Go console tool). The launcher `SpeedDisc-launch.ps1` is optional and only explains SmartScreen — it does not replace or reimplement the tool.
 
 ## How to build
 
@@ -244,7 +313,14 @@ The `site/` folder is the static page for https://speeddisc.danielpro.dev. It is
 - New action: List top 20 largest files on the system drive (informational only)
 - New action: Browser cache cleanup (Chrome, Edge, Firefox) with warning
 - New action: Flush DNS and optionally Winsock reset (with confirmation)
-- Code signing support in `build.sh` (requires `CODESIGN_PFX` and `CODESIGN_PASSWORD`)
+- Optional launcher `SpeedDisc-launch.ps1` that explains SmartScreen (does not replace the .exe)
+
+**Distribution:**
+- Clear SmartScreen documentation on site and README (PT + EN)
+- Explicit confirmation: the tool is and will always be a Go .exe, never .bat/.ps1
+- Code signing DEFERRED until paid OV certificate is available (by choice)
+- Site updated with "More info → Run anyway" instructions
+- Support sentence for IT technicians handing out the file on USB stick
 
 **Maintains:**
 - Product philosophy: no fake speed percentages, no emptying Recycle Bin, no killing processes, no registry cleaner

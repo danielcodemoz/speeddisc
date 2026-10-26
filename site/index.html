@@ -39,6 +39,7 @@
         <a href="#pacotes" data-i18n="nav_packages">Pacotes</a>
         <a href="#limites" data-i18n="nav_limits">Limites</a>
         <a href="#correr" data-i18n="nav_run">Como correr</a>
+        <a href="#smartscreen" data-i18n="nav_smartscreen">SmartScreen</a>
         <a href="#obter" data-i18n="nav_get">Obter</a>
       </nav>
       <div class="tools">
@@ -171,14 +172,37 @@
       </div>
     </section>
 
+    <section id="smartscreen">
+      <div class="wrap">
+        <h2 data-i18n="smartscreen_title">Aviso do SmartScreen esperado</h2>
+        <div class="split">
+          <div class="panel">
+            <h3><i data-lucide="shield-alert"></i> <span data-i18n="smartscreen_why">O executável não está assinado por escolha</span></h3>
+            <p data-i18n="smartscreen_what">O Windows vai mostrar "O Windows protegeu o PC" quando executar o ficheiro pela primeira vez. Isto é normal e esperado para programas sem certificado comercial.</p>
+            <p><strong data-i18n="smartscreen_how">Como proceder:</strong></p>
+            <ol>
+              <li data-i18n="smartscreen_step1">Clique em "Mais informações"</li>
+              <li data-i18n="smartscreen_step2">Clique em "Executar mesmo assim"</li>
+            </ol>
+            <p class="fine" data-i18n="smartscreen_improve">A reputação do ficheiro melhora com o número de transferências ao longo do tempo. Eventualmente o SmartScreen pode deixar de avisar, mas o aviso inicial é previsto e seguro de ignorar quando o ficheiro vem do GitHub oficial.</p>
+          </div>
+          <div class="panel">
+            <h3><i data-lucide="briefcase"></i> <span data-i18n="it_desk_title">Para escolas e secretárias de IT</span></h3>
+            <p data-i18n="it_desk_copy">Frase de suporte para técnicos que entregam uma pen com o SpeedDisc:</p>
+            <blockquote data-i18n="it_desk_sentence">"Este programa mostra um aviso do Windows porque não tem assinatura digital paga. É código aberto do GitHub. Clique em 'Mais informações' e depois 'Executar mesmo assim'. O relatório fica ao lado do ficheiro."</blockquote>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="obter">
       <div class="wrap">
         <div class="card get">
           <div>
             <h2 data-i18n="get_title">Obter o ficheiro</h2>
-            <p class="sub" data-i18n="get_lead">SpeedDisc.exe, versão 0.4.0. Se a transferência direta falhar, a página de versões tem o mesmo ficheiro.</p>
+            <p class="sub" data-i18n="get_lead">SpeedDisc.exe, versão 0.4.0. Transfira sempre das Releases do GitHub.</p>
             <div class="actions">
-              <a class="btn" href="https://github.com/danielcodemoz/speeddisc/releases/download/v0.4.0/SpeedDisc.exe">
+              <a class="btn" href="https://github.com/danielcodemoz/speeddisc/releases">
                 <i data-lucide="download"></i>
                 <span data-i18n="download">Descarregar SpeedDisc.exe</span>
               </a>
@@ -187,7 +211,6 @@
               </a>
             </div>
           </div>
-          <p class="fine" data-i18n="smartscreen">O ficheiro não está assinado. O SmartScreen vai avisar até haver um certificado de assinatura de código pago. Não é um instalador: é um programa de consola de código aberto.</p>
         </div>
       </div>
     </section>
