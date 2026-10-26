@@ -104,6 +104,7 @@ var copy = {
         cmd_title: "Comandos CMD para Técnicos",
         cmd_lead: "Referência rápida de comandos Windows. Clique num comando para copiar para a área de transferência.",
         cmd_search_placeholder: "Procurar comandos...",
+        cmd_filter_label: "Filtrar por categoria:",
         cmd_no_results: "Nenhum comando encontrado."
       },
       en: {
@@ -211,6 +212,7 @@ var copy = {
         cmd_title: "CMD Commands for Technicians",
         cmd_lead: "Quick reference for Windows commands. Click a command to copy to clipboard.",
         cmd_search_placeholder: "Search commands...",
+        cmd_filter_label: "Filter by category:",
         cmd_no_results: "No commands found."
       }
     };
