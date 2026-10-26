@@ -83,9 +83,45 @@ A reputação do ficheiro melhora com o número de transferências ao longo do t
 
 **Não há assinatura falsa** nem tentativa de contornar o aviso. Não é um instalador escondido: o código está neste repositório.
 
-#### Opcional: Launcher script
+#### Kits e perfis
 
-O ficheiro `SpeedDisc-launch.ps1` é um script PowerShell opcional que explica o aviso do SmartScreen e descarrega/executa o SpeedDisc.exe. **Não é necessário** — pode executar `SpeedDisc.exe` diretamente. É apenas uma ajuda para utilizadores que veem o aviso pela primeira vez.
+O SpeedDisc oferece **launchers pré-configurados** (`.cmd`) para diferentes contextos de uso. Todos chamam o mesmo `SpeedDisc.exe` com opções `-q` diferentes:
+
+| Launcher | Perfil | Pacote | Demora |
+|----------|--------|--------|--------|
+| **SpeedDisc-Escola.cmd** | Escolas: limpeza rápida sem operações longas | Quick | ~2-5 min |
+| **SpeedDisc-PosFormatacao.cmd** | Pós-instalação: manutenção profunda com SFC+DISM | Deep | ~20-40 min |
+| **SpeedDisc-SoVer.cmd** | Inventário apenas: **não altera nada** | Look | ~1 min |
+| **SpeedDisc-USB.cmd** | Pen de técnico: limpeza rápida | Quick | ~2-5 min |
+
+**Como usar:**
+1. Copie o launcher `.cmd` + `SpeedDisc.exe` para a mesma pasta
+2. Duplo clique no launcher `.cmd`
+3. Leia o relatório `SpeedDisc-report-*.txt`
+
+Todos os launchers estão nas [Releases do GitHub](https://github.com/danielcodemoz/speeddisc/releases).
+
+#### Capacidades de diagnóstico
+
+O SpeedDisc (menu interativo ou via `-q`) oferece:
+
+**Diagnóstico (sem alterar o sistema):**
+- Inventário: OS, CPU, memória, discos, arranque (pacote Só ver)
+- Ficheiros maiores: lista top 20 ficheiros da unidade do sistema
+- Arranque: lista Run keys e pastas Startup (sem desativar)
+- Rede: *(planeado)* snapshot IP, DNS, gateway, ping
+- Bateria: *(planeado)* relatório powercfg
+
+**Manutenção (com confirmação):**
+- Limpeza segura: temporários, cache WU/DO, miniaturas, relatórios de erros
+- Reparação: SFC, DISM, limpeza Component Store (WinSxS)
+- Rede: Flush DNS, Winsock reset (segunda confirmação)
+
+**Não oferece:** limpa-registo, percentagens falsas de velocidade, matar processos, esvaziar Reciclagem por omissão, desativar SysMain.
+
+### Opcional: Launcher explicativo
+
+O ficheiro `SpeedDisc-launch.ps1` é um script PowerShell opcional que explica o aviso do SmartScreen e descarrega/executa o SpeedDisc.exe. **Não é necessário** — pode executar `SpeedDisc.exe` diretamente ou usar os launchers de perfil acima. É apenas uma ajuda para utilizadores que veem o aviso pela primeira vez.
 
 ```powershell
 .\SpeedDisc-launch.ps1 -Help
@@ -145,7 +181,11 @@ A pasta `site/` é a página estática para https://speeddisc.danielpro.dev. Nã
 - Nova ação: Flush DNS e opcionalmente Winsock reset (com confirmação)
 - Launcher opcional `SpeedDisc-launch.ps1` que explica o SmartScreen (não substitui o .exe)
 
-**Distribuição:**
+**Distribuição e Kits:**
+- **Kits pré-configurados:** 4 launchers (.cmd) para diferentes perfis (Escola, Pós-Formatação, Só Ver, USB)
+- Todos os kits chamam o MESMO SpeedDisc.exe com opções `-q` diferentes
+- Documentação de capacidades de diagnóstico: inventário, ficheiros maiores, arranque, rede, bateria
+- Secção "Kits / Perfis" no site com cards para cada perfil
 - Documentação clara sobre SmartScreen no site e README (PT + EN)
 - Confirmação explícita: a ferramenta é e será sempre um .exe Go, nunca .bat/.ps1
 - Assinatura de código ADIADA até certificado OV pago estar disponível (por escolha)
@@ -253,9 +293,45 @@ The file's reputation improves with the number of downloads over time. Eventuall
 
 **There is no fake signature** or attempt to bypass the warning. It is not a hidden installer: the source is in this repository.
 
-#### Optional: Launcher script
+### Kits and profiles
 
-The file `SpeedDisc-launch.ps1` is an optional PowerShell script that explains the SmartScreen warning and downloads/runs SpeedDisc.exe. **It is not required** — you can run `SpeedDisc.exe` directly. It's just a helper for users seeing the warning for the first time.
+SpeedDisc offers **pre-configured launchers** (`.cmd`) for different use cases. All of them call the same `SpeedDisc.exe` with different `-q` options:
+
+| Launcher | Profile | Package | Duration |
+|----------|---------|---------|----------|
+| **SpeedDisc-Escola.cmd** | Schools: quick cleanup without long operations | Quick | ~2-5 min |
+| **SpeedDisc-PosFormatacao.cmd** | Post-installation: deep maintenance with SFC+DISM | Deep | ~20-40 min |
+| **SpeedDisc-SoVer.cmd** | Inventory only: **changes nothing** | Look | ~1 min |
+| **SpeedDisc-USB.cmd** | Technician USB stick: quick cleanup | Quick | ~2-5 min |
+
+**How to use:**
+1. Copy the `.cmd` launcher + `SpeedDisc.exe` to the same folder
+2. Double-click the `.cmd` launcher
+3. Read the report `SpeedDisc-report-*.txt`
+
+All launchers are in the [GitHub Releases](https://github.com/danielcodemoz/speeddisc/releases).
+
+#### Diagnostic capabilities
+
+SpeedDisc (interactive menu or via `-q`) offers:
+
+**Diagnostics (without changing the system):**
+- Inventory: OS, CPU, memory, disks, startup (Look only package)
+- Large files: lists top 20 files on system drive
+- Startup: lists Run keys and Startup folders (without disabling)
+- Network: *(planned)* snapshot IP, DNS, gateway, ping
+- Battery: *(planned)* powercfg report
+
+**Maintenance (with confirmation):**
+- Safe cleanup: temp files, WU/DO cache, thumbnails, error reports
+- Repair: SFC, DISM, Component Store cleanup (WinSxS)
+- Network: Flush DNS, Winsock reset (second confirmation)
+
+**Does not offer:** registry cleaner, fake speed percentages, kill processes, empty Recycle Bin by default, disable SysMain.
+
+#### Optional: Explanatory launcher
+
+The file `SpeedDisc-launch.ps1` is an optional PowerShell script that explains the SmartScreen warning and downloads/runs SpeedDisc.exe. **It is not required** — you can run `SpeedDisc.exe` directly or use the profile launchers above. It's just a helper for users seeing the warning for the first time.
 
 ```powershell
 .\SpeedDisc-launch.ps1 -Help
@@ -315,7 +391,11 @@ The `site/` folder is the static page for https://speeddisc.danielpro.dev. It is
 - New action: Flush DNS and optionally Winsock reset (with confirmation)
 - Optional launcher `SpeedDisc-launch.ps1` that explains SmartScreen (does not replace the .exe)
 
-**Distribution:**
+**Distribution and Kits:**
+- **Pre-configured kits:** 4 launchers (.cmd) for different profiles (School, Post-Install, Look Only, USB)
+- All kits call the SAME SpeedDisc.exe with different `-q` options
+- Diagnostic capabilities documented: inventory, large files, startup, network, battery
+- "Kits / Profiles" section on site with cards for each profile
 - Clear SmartScreen documentation on site and README (PT + EN)
 - Explicit confirmation: the tool is and will always be a Go .exe, never .bat/.ps1
 - Code signing DEFERRED until paid OV certificate is available (by choice)

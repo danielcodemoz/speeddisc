@@ -39,6 +39,7 @@
         <a href="#pacotes" data-i18n="nav_packages">Pacotes</a>
         <a href="#limites" data-i18n="nav_limits">Limites</a>
         <a href="#correr" data-i18n="nav_run">Como correr</a>
+        <a href="#kits" data-i18n="nav_kits">Kits / Perfis</a>
         <a href="#smartscreen" data-i18n="nav_smartscreen">SmartScreen</a>
         <a href="#obter" data-i18n="nav_get">Obter</a>
       </nav>
@@ -169,6 +170,101 @@
           <li><span class="n">2</span><span data-i18n="step2">Duplo clique. O Windows pede administrador antes do menu.</span></li>
           <li><span class="n">3</span><span data-i18n="step3">Escolha um pacote ou vários números. Leia o relatório .txt que fica ao lado do programa.</span></li>
         </ol>
+      </div>
+    </section>
+
+    <section id="kits">
+      <div class="wrap">
+        <h2 data-i18n="kits_title">Kits e Perfis</h2>
+        <p class="sub" data-i18n="kits_lead">Pequenos launchers (.cmd) que executam SpeedDisc.exe com perfis pré-configurados. Copie o launcher + SpeedDisc.exe para a mesma pasta.</p>
+        <p class="fine" data-i18n="kits_one_exe">UM SÓ SpeedDisc.exe — os launchers apenas o chamam com opções diferentes.</p>
+        
+        <div class="grid kits">
+          <article class="card kit">
+            <h3 data-i18n="kit_escola_name">SpeedDisc-Escola</h3>
+            <p data-i18n="kit_escola_what">Limpeza rápida sem operações longas. Para escolas e contextos onde o tempo é limitado.</p>
+            <p class="small"><strong>Faz:</strong> <span data-i18n="kit_escola_does">Temporários, cache WU, miniaturas, plano Alto desempenho</span></p>
+            <p class="small"><strong>Não faz:</strong> <span data-i18n="kit_escola_not">SEM SFC/DISM (demoram). Não desativa arranque nem esvazia Reciclagem.</span></p>
+            <div class="actions">
+              <a class="btn small" href="https://github.com/danielcodemoz/speeddisc/releases/latest/download/SpeedDisc-Escola.cmd">
+                <i data-lucide="download"></i>
+                <span data-i18n="kit_download_launcher">Descarregar launcher</span>
+              </a>
+            </div>
+          </article>
+
+          <article class="card kit">
+            <h3 data-i18n="kit_pos_name">SpeedDisc-PosFormatacao</h3>
+            <p data-i18n="kit_pos_what">Manutenção profunda após instalação do Windows. Inclui SFC e DISM (podem demorar 15-30 min).</p>
+            <p class="small"><strong>Faz:</strong> <span data-i18n="kit_pos_does">Limpeza completa, SFC, DISM, ponto de restauro</span></p>
+            <p class="small"><strong>Não faz:</strong> <span data-i18n="kit_pos_not">Não desativa arranque nem esvazia Reciclagem.</span></p>
+            <div class="actions">
+              <a class="btn small" href="https://github.com/danielcodemoz/speeddisc/releases/latest/download/SpeedDisc-PosFormatacao.cmd">
+                <i data-lucide="download"></i>
+                <span data-i18n="kit_download_launcher">Descarregar launcher</span>
+              </a>
+            </div>
+          </article>
+
+          <article class="card kit">
+            <h3 data-i18n="kit_sover_name">SpeedDisc-SoVer</h3>
+            <p data-i18n="kit_sover_what">Inventário apenas: lê sistema, arranque e discos. NÃO altera nada.</p>
+            <p class="small"><strong>Faz:</strong> <span data-i18n="kit_sover_does">OS, CPU, memória, discos, arranque, estimativa de temporários</span></p>
+            <p class="small"><strong>Não faz:</strong> <span data-i18n="kit_sover_not">Não altera NADA no sistema. Apenas lê e escreve relatório.</span></p>
+            <div class="actions">
+              <a class="btn small" href="https://github.com/danielcodemoz/speeddisc/releases/latest/download/SpeedDisc-SoVer.cmd">
+                <i data-lucide="download"></i>
+                <span data-i18n="kit_download_launcher">Descarregar launcher</span>
+              </a>
+            </div>
+          </article>
+
+          <article class="card kit">
+            <h3 data-i18n="kit_usb_name">SpeedDisc-USB</h3>
+            <p data-i18n="kit_usb_what">Perfil para pen de técnico: limpeza rápida para visitas de suporte.</p>
+            <p class="small"><strong>Faz:</strong> <span data-i18n="kit_usb_does">Temporários, cache WU, miniaturas, plano Alto desempenho</span></p>
+            <p class="small"><strong>Não faz:</strong> <span data-i18n="kit_usb_not">SEM SFC/DISM. Não desativa arranque nem esvazia Reciclagem.</span></p>
+            <div class="actions">
+              <a class="btn small" href="https://github.com/danielcodemoz/speeddisc/releases/latest/download/SpeedDisc-USB.cmd">
+                <i data-lucide="download"></i>
+                <span data-i18n="kit_download_launcher">Descarregar launcher</span>
+              </a>
+            </div>
+          </article>
+        </div>
+
+        <p class="fine" style="margin-top: 2rem; text-align: center;">
+          <span data-i18n="kit_need_exe">Também precisa de:</span> 
+          <a href="https://github.com/danielcodemoz/speeddisc/releases"><strong>SpeedDisc.exe</strong></a>
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 data-i18n="diagnostic_title">Capacidades de diagnóstico</h2>
+        <p class="sub" data-i18n="diagnostic_lead">SpeedDisc oferece ações de diagnóstico e manutenção sem alterar o sistema:</p>
+        <div class="split">
+          <div class="panel">
+            <h3><i data-lucide="search"></i> <span>Diagnóstico</span></h3>
+            <ul class="clean">
+              <li><i data-lucide="check"></i><span data-i18n="diagnostic_inventory">Inventário: sistema, CPU, memória, discos, arranque</span></li>
+              <li><i data-lucide="check"></i><span data-i18n="diagnostic_topfiles">Ficheiros maiores: lista os top 20 ficheiros</span></li>
+              <li><i data-lucide="check"></i><span data-i18n="diagnostic_startup">Arranque: lista Run keys e pastas Startup</span></li>
+              <li><i data-lucide="clock"></i><span data-i18n="diagnostic_network">Rede: (planeado) snapshot IP, DNS, gateway</span></li>
+              <li><i data-lucide="clock"></i><span data-i18n="diagnostic_battery">Bateria: (planeado) relatório powercfg</span></li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3><i data-lucide="wrench"></i> <span>Manutenção</span></h3>
+            <ul class="clean">
+              <li><i data-lucide="check"></i><span data-i18n="diagnostic_cleanup">Limpeza segura: temporários, cache WU/DO</span></li>
+              <li><i data-lucide="check"></i><span data-i18n="diagnostic_repair">Reparação: SFC, DISM, Component Store</span></li>
+              <li><i data-lucide="check"></i><span data-i18n="diagnostic_network_action">Rede: Flush DNS, Winsock reset</span></li>
+            </ul>
+            <p class="fine" style="margin-top: 1rem;" data-i18n="diagnostic_not">NÃO oferece: limpa-registo, percentagens falsas, matar processos, esvaziar Reciclagem por omissão, desativar SysMain.</p>
+          </div>
+        </div>
       </div>
     </section>
 
