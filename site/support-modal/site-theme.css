@@ -1,0 +1,20 @@
+/* SpeedDisc palette. Loaded after support-modal.css so these variables win. */
+:root {
+  --dp-support-accent: #0e6b62;
+  --dp-support-bg: #fffcf7;
+  --dp-support-fg: #1c1915;
+  --dp-support-muted: #5e584e;
+  --dp-support-line: #e3dacb;
+  --dp-support-card: #f3f0e8;
+  --dp-support-glow: rgba(14, 107, 98, 0.12);
+}
+
+html[data-theme="dark"] {
+  --dp-support-accent: #8fd4cb;
+  --dp-support-bg: #1b221f;
+  --dp-support-fg: #efeae2;
+  --dp-support-muted: #b7b1a6;
+  --dp-support-line: #2c3531;
+  --dp-support-card: #121614;
+  --dp-support-glow: rgba(143, 212, 203, 0.18);
+}

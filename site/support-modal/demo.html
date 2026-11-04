@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apoiar — free / paid preview</title>
+  <link rel="stylesheet" href="support-modal.css">
+  <style>
+    html { background: #07090c; color: #eef3f8; }
+    html[data-theme="light"] { background: #f3f5f8; color: #141a21; }
+    body { margin: 0; min-height: 100vh; font: 16px/1.4 system-ui, sans-serif; }
+    .bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 16px;
+    }
+    .bar button {
+      font: inherit;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid currentColor;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+    }
+    html.is-shot .bar { display: none; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <button type="button" data-set-variant="free">Free</button>
+    <button type="button" data-set-variant="paid">Paid</button>
+    <button type="button" data-set-theme="dark">Dark</button>
+    <button type="button" data-set-theme="light">Light</button>
+    <button type="button" data-set-lang="pt">PT</button>
+    <button type="button" data-set-lang="en">EN</button>
+    <button type="button" data-dp-support-open>Open</button>
+  </div>
+  <script src="support-modal.js" data-variant="free" data-theme="default-dark" defer></script>
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var tag = document.querySelector('script[src*="support-modal.js"]');
+      var variant = params.get('variant');
+      if (variant === 'paid' || variant === 'free') tag.dataset.variant = variant;
+      document.documentElement.lang = params.get('lang') === 'en' ? 'en' : 'pt-PT';
+      if (params.get('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+      else document.documentElement.removeAttribute('data-theme');
+      if (params.get('shot') === '1') {
+        document.documentElement.classList.add('is-shot');
+        tag.dataset.open = '1';
+      }
+      document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('[data-set-variant]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            window.SupportModal.setVariant(button.getAttribute('data-set-variant'));
+            window.SupportModal.open(button);
+          });
+        });
+        document.querySelectorAll('[data-set-theme]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            var mode = button.getAttribute('data-set-theme');
+            if (mode === 'light') document.documentElement.setAttribute('data-theme', 'light');
+            else document.documentElement.removeAttribute('data-theme');
+          });
+        });
+        document.querySelectorAll('[data-set-lang]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            var lang = button.getAttribute('data-set-lang');
+            document.documentElement.lang = lang === 'en' ? 'en' : 'pt-PT';
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

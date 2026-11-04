@@ -28,6 +28,8 @@
     })();
   </script>
   <link rel="stylesheet" href="/style.css?v=0.4.0">
+  <link rel="stylesheet" href="/support-modal/support-modal.css">
+  <link rel="stylesheet" href="/support-modal/site-theme.css">
   
 </head>
 <body>
@@ -42,6 +44,7 @@
         <a href="#obter" data-i18n="nav_get">Obter</a>
       </nav>
       <div class="tools">
+        <span data-dp-support="nav"></span>
         <div class="seg" role="group" aria-label="Idioma">
           <button type="button" id="btn-pt" data-set-lang="pt" aria-pressed="true">PT</button>
           <button type="button" id="btn-en" data-set-lang="en" aria-pressed="false">EN</button>
@@ -314,6 +317,8 @@
     <footer>
       <span data-i18n="foot">Daniel Marcos · MIT · 2026</span>
       <span>
+        <span data-dp-support="link"></span>
+        ·
         <a href="https://github.com/danielcodemoz/speeddisc">GitHub</a>
         ·
         <a href="https://speeddisc.danielpro.dev/">speeddisc.danielpro.dev</a>
@@ -322,6 +327,7 @@
   </div>
 
   <script src="https://unpkg.com/lucide@0.511.0/dist/umd/lucide.min.js"></script>
+  <script src="/support-modal/support-modal.js" data-variant="free" data-theme="auto" defer></script>
   <script src="/app.js?v=0.4.0"></script>
 
 </body>
