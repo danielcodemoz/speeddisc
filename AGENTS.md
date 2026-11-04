@@ -16,3 +16,4 @@
 - Support modals: Lemon Squeezy stays hidden until activated; M-Pesa only as a QR code.
 - Codex does **not** deploy. Deploys are done separately after review.
 - Small, focused PRs with a clear description; include screenshots for UI changes.
+- Handoff: keep your branch pushed often, and keep a section "## Estado / Próximos passos" in the PR description up to date (what is done, what is left, how to test). Another agent (Codex or Grok Bot) may continue the same branch mid-way. Never deploy; deploys wait for Daniel's bot.
