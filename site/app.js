@@ -112,6 +112,7 @@ var copy = {
         theme: "Tema",
         menu: "Menu",
         menu_close: "Fechar menu",
+        to_top: "Voltar ao topo",
         nav_home: "Início",
         nav_commands: "Comandos CMD",
         back_home: "Voltar ao início",
@@ -239,6 +240,7 @@ var copy = {
         theme: "Theme",
         menu: "Menu",
         menu_close: "Close menu",
+        to_top: "Back to top",
         nav_home: "Home",
         nav_commands: "CMD Commands",
         back_home: "Back to home",
@@ -284,6 +286,10 @@ var copy = {
       document.querySelectorAll("[data-i18n-alt]").forEach(function (el) {
         var key = el.getAttribute("data-i18n-alt");
         if (table[key]) el.setAttribute("alt", table[key]);
+      });
+      document.querySelectorAll("[data-i18n-label]").forEach(function (el) {
+        var key = el.getAttribute("data-i18n-label");
+        if (table[key]) el.setAttribute("aria-label", table[key]);
       });
       document.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
         var key = el.getAttribute("data-i18n-placeholder");
@@ -370,6 +376,16 @@ var copy = {
       });
       window.matchMedia("(min-width: 721px)").addEventListener("change", function (e) { if (e.matches) setNav(false); });
     }
+    var topBtn = document.getElementById("to-top");
+    function onScroll() {
+      var y = window.scrollY || 0;
+      var h = document.querySelector("header");
+      if (h) h.classList.toggle("scrolled", y > 8);
+      if (topBtn) topBtn.classList.toggle("show", y > 600);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    if (topBtn) topBtn.addEventListener("click", function () { window.scrollTo({ top: 0 }); });
+    onScroll();
 
     applyLang(initialLang());
     applyTheme(document.documentElement.getAttribute("data-theme") || "light");

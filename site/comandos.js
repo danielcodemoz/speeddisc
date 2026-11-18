@@ -131,6 +131,11 @@ function getCategoryIcon(catKey) {
 function renderCommands() {
   var grid = document.getElementById('cmd-grid');
   var noResults = document.getElementById('no-results');
+  var count = document.getElementById('cmd-count');
+  if (count) {
+    var n = filteredCommands.length;
+    count.textContent = currentLang === 'pt' ? n + (n === 1 ? ' comando' : ' comandos') : n + (n === 1 ? ' command' : ' commands');
+  }
   
   if (filteredCommands.length === 0) {
     grid.style.display = 'none';
