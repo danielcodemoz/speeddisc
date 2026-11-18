@@ -1,0 +1,41 @@
+name: Release
+
+# Runs only when a version tag is pushed (e.g. v0.4.1). It builds, tests and
+# publishes SpeedDisc.exe + the .cmd launchers + SHA256SUMS.txt to the GitHub
+# Release. It does NOT deploy the website or touch any server.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Test
+        run: go vet ./... && go test ./...
+      - name: Install go-winres
+        run: go install github.com/tc-hib/go-winres@v0.3.3
+      - name: Build (unsigned by choice, see build.sh)
+        run: sh build.sh
+      - name: Checksums
+        run: |
+          sha256sum SpeedDisc.exe SpeedDisc-*.cmd > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          files="SpeedDisc.exe SpeedDisc-Escola.cmd SpeedDisc-PosFormatacao.cmd SpeedDisc-SoVer.cmd SpeedDisc-USB.cmd SHA256SUMS.txt"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" $files --clobber
+          else
+            gh release create "$TAG" $files --title "$TAG" --generate-notes
+          fi

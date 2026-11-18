@@ -317,11 +317,14 @@
         </div>
         <div class="card get-verify">
           <h3 data-i18n="verify_title">Confirmar a transferência</h3>
-          <p data-i18n="verify_body">Calcule o SHA-256 do ficheiro e compare-o com o da página da versão no GitHub, quando existir. Numa consola do Windows:</p>
+          <p data-i18n="verify_body">Calcule o SHA-256 do ficheiro e compare-o com o valor abaixo. Numa consola do Windows:</p>
           <div class="codeline">
             <code id="verify-cmd">certutil -hashfile SpeedDisc.exe SHA256</code>
             <button class="btn ghost small" type="button" id="verify-copy" data-i18n="copy">Copiar</button>
           </div>
+          <p class="fine"><span data-i18n="verify_expected">SHA-256 esperado:</span>
+            <code id="verify-hash" class="hash" data-i18n="verify_loading">a carregar…</code></p>
+          <p class="fine"><a href="https://github.com/danielcodemoz/speeddisc/releases/download/v0.4.0/SHA256SUMS.txt" data-i18n="verify_file">Ver SHA256SUMS.txt</a></p>
           <p class="fine" data-i18n="verify_note">O Windows pode mostrar o aviso do SmartScreen na primeira execução: é esperado, o ficheiro não é assinado.</p>
         </div>
       </div>

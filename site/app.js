@@ -55,7 +55,11 @@ var copy = {
         get_req2: "Pede administrador ao abrir.",
         get_req3: "Um só ficheiro, sem instalador.",
         verify_title: "Confirmar a transferência",
-        verify_body: "Calcule o SHA-256 do ficheiro e compare-o com o da página da versão no GitHub, quando existir. Numa consola do Windows:",
+        verify_body: "Calcule o SHA-256 do ficheiro e compare-o com o valor abaixo. Numa consola do Windows:",
+        verify_expected: "SHA-256 esperado:",
+        verify_loading: "a carregar…",
+        verify_unavailable: "indisponível aqui — veja o SHA256SUMS.txt",
+        verify_file: "Ver SHA256SUMS.txt",
         verify_note: "O Windows pode mostrar o aviso do SmartScreen na primeira execução: é esperado, o ficheiro não é assinado.",
         copy: "Copiar",
         copied: "Copiado!",
@@ -176,7 +180,11 @@ var copy = {
         get_req2: "Asks for administrator on launch.",
         get_req3: "A single file, no installer.",
         verify_title: "Verify the download",
-        verify_body: "Compute the file's SHA-256 and compare it with the one on the GitHub release page, when provided. In a Windows console:",
+        verify_body: "Compute the file's SHA-256 and compare it with the value below. In a Windows console:",
+        verify_expected: "Expected SHA-256:",
+        verify_loading: "loading…",
+        verify_unavailable: "unavailable here — see SHA256SUMS.txt",
+        verify_file: "View SHA256SUMS.txt",
         verify_note: "Windows may show the SmartScreen warning on first run: this is expected, the file is not signed.",
         copy: "Copy",
         copied: "Copied!",
@@ -283,6 +291,7 @@ var copy = {
       var group = document.querySelector(".seg");
       if (group) group.setAttribute("aria-label", table.lang_label);
       localStorage.setItem("sd-lang", lang);
+      if (typeof showHash === "function") showHash();
     }
 
     function applyTheme(theme) {
@@ -313,6 +322,27 @@ var copy = {
       };
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () {});
     });
+
+    var hashEl = document.getElementById("verify-hash");
+    var hashValue = null, hashFailed = false;
+    function showHash() {
+      if (!hashEl) return;
+      var lang = document.documentElement.dataset.lang === "en" ? "en" : "pt";
+      hashEl.textContent = hashValue || (hashFailed ? copy[lang].verify_unavailable : copy[lang].verify_loading);
+      if (hashValue) hashEl.removeAttribute("data-i18n");
+      else hashEl.setAttribute("data-i18n", hashFailed ? "verify_unavailable" : "verify_loading");
+    }
+    if (hashEl && window.fetch) {
+      fetch("https://api.github.com/repos/danielcodemoz/speeddisc/releases/tags/v0.4.0", { headers: { Accept: "application/vnd.github+json" } })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (rel) {
+          var asset = (rel.assets || []).filter(function (x) { return x.name === "SpeedDisc.exe"; })[0];
+          var m = asset && /^sha256:([0-9a-f]{64})$/.exec(asset.digest || "");
+          if (m) hashValue = m[1]; else hashFailed = true;
+          showHash();
+        })
+        .catch(function () { hashFailed = true; showHash(); });
+    }
 
     applyLang(initialLang());
     applyTheme(document.documentElement.getAttribute("data-theme") || "light");
