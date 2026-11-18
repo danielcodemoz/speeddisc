@@ -231,7 +231,7 @@
   <header>
     <div class="wrap bar">
       <a class="brand" href="/"><img src="/favicon.ico" width="32" height="32" alt=""><span class="word">SpeedDisc</span></a>
-      <nav>
+      <nav id="site-nav">
         <a href="/" data-i18n="nav_home">Início</a>
         <a href="/comandos.html" data-i18n="nav_commands">Comandos CMD</a>
       </nav>
@@ -243,6 +243,9 @@
         <span data-apoiar="nav" style="margin-right:8px"></span>
         <button class="iconbtn" id="theme" type="button" aria-label="Tema">
           <i data-lucide="moon"></i>
+        </button>
+        <button class="iconbtn navtoggle" id="navtoggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu">
+          <i data-lucide="menu"></i>
         </button>
       </div>
     </div>
