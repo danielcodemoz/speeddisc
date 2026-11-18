@@ -51,6 +51,14 @@ var copy = {
         step1: "Copie o SpeedDisc.exe para o computador ou para uma pen USB.",
         step2: "Duplo clique. O Windows pede administrador antes do menu.",
         step3: "Escolha um pacote ou vários números. Leia o relatório .txt que fica ao lado do programa.",
+        get_req1: "Windows de 64 bits, 10 ou 11.",
+        get_req2: "Pede administrador ao abrir.",
+        get_req3: "Um só ficheiro, sem instalador.",
+        verify_title: "Confirmar a transferência",
+        verify_body: "Calcule o SHA-256 do ficheiro e compare-o com o da página da versão no GitHub, quando existir. Numa consola do Windows:",
+        verify_note: "O Windows pode mostrar o aviso do SmartScreen na primeira execução: é esperado, o ficheiro não é assinado.",
+        copy: "Copiar",
+        copied: "Copiado!",
         get_title: "Obter o ficheiro",
         get_lead: "SpeedDisc.exe, versão 0.4.0. Transfira sempre das Releases do GitHub.",
         releases: "Todas as versões",
@@ -164,6 +172,14 @@ var copy = {
         step1: "Copy SpeedDisc.exe to the computer or to a USB stick.",
         step2: "Double-click. Windows asks for administrator before the menu.",
         step3: "Choose a package or several numbers. Read the .txt report left next to the program.",
+        get_req1: "64-bit Windows, 10 or 11.",
+        get_req2: "Asks for administrator on launch.",
+        get_req3: "A single file, no installer.",
+        verify_title: "Verify the download",
+        verify_body: "Compute the file's SHA-256 and compare it with the one on the GitHub release page, when provided. In a Windows console:",
+        verify_note: "Windows may show the SmartScreen warning on first run: this is expected, the file is not signed.",
+        copy: "Copy",
+        copied: "Copied!",
         get_title: "Get the file",
         get_lead: "SpeedDisc.exe, version 0.4.0. Always download from GitHub Releases.",
         releases: "All releases",
@@ -274,8 +290,8 @@ var copy = {
       localStorage.setItem("sd-theme", theme);
       var meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute("content", theme === "dark" ? "#121614" : "#f3f0e8");
-      var icon = document.querySelector("#theme i");
-      if (icon) icon.setAttribute("data-lucide", theme === "dark" ? "sun" : "moon");
+      var btn = document.getElementById("theme");
+      if (btn) btn.innerHTML = '<i data-lucide="' + (theme === "dark" ? "sun" : "moon") + '"></i>';
       if (window.lucide) lucide.createIcons();
     }
 
@@ -285,6 +301,17 @@ var copy = {
     document.getElementById("theme").addEventListener("click", function () {
       var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
       applyTheme(next);
+    });
+
+    var vc = document.getElementById("verify-copy");
+    if (vc) vc.addEventListener("click", function () {
+      var txt = document.getElementById("verify-cmd").textContent;
+      var lang = document.documentElement.dataset.lang === "en" ? "en" : "pt";
+      var done = function () {
+        vc.textContent = copy[lang].copied;
+        setTimeout(function () { vc.textContent = copy[lang].copy; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () {});
     });
 
     applyLang(initialLang());
