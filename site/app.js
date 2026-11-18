@@ -101,6 +101,11 @@ var copy = {
         nav_home: "Início",
         nav_commands: "Comandos CMD",
         back_home: "Voltar ao início",
+        skip: "Saltar para o conteúdo",
+        cmd_search_label: "Procurar comandos",
+        cmd_doc_title: "Comandos CMD — SpeedDisc",
+        does_label: "Faz:",
+        not_label: "Não faz:",
         cmd_title: "Comandos CMD para Técnicos",
         cmd_lead: "Referência rápida de comandos Windows. Clique num comando para copiar para a área de transferência.",
         cmd_search_placeholder: "Procurar comandos...",
@@ -209,6 +214,11 @@ var copy = {
         nav_home: "Home",
         nav_commands: "CMD Commands",
         back_home: "Back to home",
+        skip: "Skip to content",
+        cmd_search_label: "Search commands",
+        cmd_doc_title: "CMD Commands — SpeedDisc",
+        does_label: "Does:",
+        not_label: "Does not:",
         cmd_title: "CMD Commands for Technicians",
         cmd_lead: "Quick reference for Windows commands. Click a command to copy to clipboard.",
         cmd_search_placeholder: "Search commands...",
@@ -238,7 +248,7 @@ var copy = {
       var table = copy[lang];
       document.documentElement.lang = lang === "en" ? "en" : "pt-PT";
       document.documentElement.dataset.lang = lang;
-      document.title = table.title;
+      document.title = (document.documentElement.dataset.page === "commands" && table.cmd_doc_title) ? table.cmd_doc_title : table.title;
       document.querySelectorAll("[data-i18n]").forEach(function (el) {
         var key = el.getAttribute("data-i18n");
         if (table[key]) el.textContent = table[key];

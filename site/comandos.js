@@ -107,7 +107,9 @@ function renderFilterChips() {
   Object.keys(categories).forEach(function(catKey) {
     var chip = document.createElement('button');
     chip.className = 'filter-chip';
+    chip.type = 'button';
     chip.setAttribute('data-category', catKey);
+    chip.setAttribute('aria-pressed', catKey === currentCategory ? 'true' : 'false');
     if (catKey === currentCategory) {
       chip.className += ' active';
     }
@@ -144,6 +146,9 @@ function renderCommands() {
   filteredCommands.forEach(function(item) {
     var row = document.createElement('article');
     row.className = 'cmd-row';
+    row.tabIndex = 0;
+    row.setAttribute('role', 'button');
+    row.setAttribute('aria-label', (currentLang === 'pt' ? 'Copiar comando ' : 'Copy command ') + item.cmd);
     
     var icon = document.createElement('div');
     icon.className = 'cmd-icon';
@@ -175,6 +180,7 @@ function renderCommands() {
     
     var feedback = document.createElement('span');
     feedback.className = 'copy-feedback';
+    feedback.setAttribute('role', 'status');
     feedback.textContent = currentLang === 'pt' ? 'Copiado!' : 'Copied!';
     
     row.appendChild(feedback);
@@ -183,6 +189,9 @@ function renderCommands() {
     
     row.addEventListener('click', function() {
       copyToClipboard(item.cmd, row);
+    });
+    row.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copyToClipboard(item.cmd, row); }
     });
     
     grid.appendChild(row);
