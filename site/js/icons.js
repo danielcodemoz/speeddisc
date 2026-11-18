@@ -29,7 +29,8 @@
   "activity": "<path d=\"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2\"/>",
   "list": "<path d=\"M3 12h.01\"/><path d=\"M3 18h.01\"/><path d=\"M3 6h.01\"/><path d=\"M8 12h13\"/><path d=\"M8 18h13\"/><path d=\"M8 6h13\"/>",
   "menu": "<path d=\"M4 12h16\"/><path d=\"M4 18h16\"/><path d=\"M4 6h16\"/>",
-  "x": "<path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/>"
+  "x": "<path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/>",
+  "arrow-up": "<path d=\"m5 12 7-7 7 7\"/><path d=\"M12 19V5\"/>"
 };
   function createIcons() {
     document.querySelectorAll("i[data-lucide]").forEach(function (el) {
