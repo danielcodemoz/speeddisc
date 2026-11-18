@@ -27,7 +27,7 @@
       if (meta) meta.setAttribute("content", t === "dark" ? "#121614" : "#f3f0e8");
     })();
   </script>
-  <link rel="stylesheet" href="/style.css?v=0.4.0b">
+  <link rel="stylesheet" href="/style.css?v=0.4.0c">
   <style>
     .cmd-search {
       width: 100%;
@@ -231,7 +231,7 @@
   <header>
     <div class="wrap bar">
       <a class="brand" href="/"><img src="/favicon.ico" width="32" height="32" alt=""><span class="word">SpeedDisc</span></a>
-      <nav>
+      <nav id="site-nav">
         <a href="/" data-i18n="nav_home">Início</a>
         <a href="/comandos.html" data-i18n="nav_commands">Comandos CMD</a>
       </nav>
@@ -243,6 +243,9 @@
         <span data-apoiar="nav" style="margin-right:8px"></span>
         <button class="iconbtn" id="theme" type="button" aria-label="Tema">
           <i data-lucide="moon"></i>
+        </button>
+        <button class="iconbtn navtoggle" id="navtoggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu">
+          <i data-lucide="menu"></i>
         </button>
       </div>
     </div>
@@ -291,8 +294,8 @@
     </footer>
   </div>
 
-  <script src="/js/icons.js?v=0.4.0"></script>
-  <script src="/app.js?v=0.4.0b"></script>
+  <script src="/js/icons.js?v=0.4.0c"></script>
+  <script src="/app.js?v=0.4.0c"></script>
   <script src="/comandos.js?v=0.4.0"></script>
 <script src="/js/apoiar.js?v=2.6.rollout" data-variant="free" data-accent="#0e6b62" data-theme="auto" defer></script>
 </body>

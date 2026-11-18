@@ -110,6 +110,8 @@ var copy = {
         diagnostic_not: "NÃO oferece: limpa-registo, percentagens falsas, matar processos, esvaziar Reciclagem por omissão, desativar SysMain.",
         foot: "Daniel Marcos · MIT · 2026",
         theme: "Tema",
+        menu: "Menu",
+        menu_close: "Fechar menu",
         nav_home: "Início",
         nav_commands: "Comandos CMD",
         back_home: "Voltar ao início",
@@ -235,6 +237,8 @@ var copy = {
         diagnostic_not: "Does NOT offer: registry cleaner, fake percentages, kill processes, empty Recycle Bin by default, disable SysMain.",
         foot: "Daniel Marcos · MIT · 2026",
         theme: "Theme",
+        menu: "Menu",
+        menu_close: "Close menu",
         nav_home: "Home",
         nav_commands: "CMD Commands",
         back_home: "Back to home",
@@ -288,6 +292,7 @@ var copy = {
       document.getElementById("btn-pt").setAttribute("aria-pressed", lang === "pt" ? "true" : "false");
       document.getElementById("btn-en").setAttribute("aria-pressed", lang === "en" ? "true" : "false");
       document.getElementById("theme").setAttribute("aria-label", table.theme);
+      if (navBtn) navBtn.setAttribute("aria-label", table[hdr.classList.contains("nav-open") ? "menu_close" : "menu"]);
       var group = document.querySelector(".seg");
       if (group) group.setAttribute("aria-label", table.lang_label);
       localStorage.setItem("sd-lang", lang);
@@ -342,6 +347,28 @@ var copy = {
           showHash();
         })
         .catch(function () { hashFailed = true; showHash(); });
+    }
+
+    var navBtn = document.getElementById("navtoggle");
+    var hdr = document.querySelector("header");
+    function setNav(open) {
+      if (!navBtn || !hdr) return;
+      var lang = document.documentElement.dataset.lang === "en" ? "en" : "pt";
+      hdr.classList.toggle("nav-open", open);
+      navBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      navBtn.setAttribute("aria-label", copy[lang][open ? "menu_close" : "menu"]);
+      navBtn.innerHTML = '<i data-lucide="' + (open ? "x" : "menu") + '"></i>';
+      if (window.lucide) lucide.createIcons();
+    }
+    if (navBtn) {
+      navBtn.addEventListener("click", function () { setNav(!hdr.classList.contains("nav-open")); });
+      document.getElementById("site-nav").addEventListener("click", function (e) {
+        if (e.target.closest("a")) setNav(false);
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && hdr.classList.contains("nav-open")) { setNav(false); navBtn.focus(); }
+      });
+      window.matchMedia("(min-width: 721px)").addEventListener("change", function (e) { if (e.matches) setNav(false); });
     }
 
     applyLang(initialLang());
