@@ -10,7 +10,7 @@ import (
 
 func main() {
 	qm := parseFlags()
-	
+
 	ui := NewUI(os.Stdout, os.Stdin)
 	color, utf8 := setupConsole()
 	ui.color = color
@@ -101,16 +101,16 @@ func runQuietMode(qm quietMode, lang Lang, ui *UI, rep *Report) {
 
 	collectInfo(rep)
 	execute(lang, acts, ui, rep)
-	
+
 	rep.setLang(lang)
 	path, err := rep.Write()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to write report: %v\n", err)
 		os.Exit(1)
 	}
-	
+
 	fmt.Fprintf(os.Stdout, "Report: %s\n", path)
-	
+
 	if len(rep.Failed) > 0 {
 		os.Exit(1)
 	}

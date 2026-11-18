@@ -244,18 +244,18 @@ func runTopFilesUI(lang Lang, ui *UI, rep *Report) {
 	} else {
 		systemRoot = systemRoot[:3]
 	}
-	
+
 	live := ui.track(T(lang, "name_top_files"), T(lang, "working"), "")
 	files := findTopLargeFiles(systemRoot, 20, 30*time.Second)
 	live.stopClear()
-	
+
 	if len(files) == 0 {
 		ui.info(T(lang, "done_top_files", 0))
 		m := msg{"done_top_files", []any{0}}
 		rep.addDone(m)
 		return
 	}
-	
+
 	fmt.Fprintln(ui.out)
 	ui.info(T(lang, "done_top_files", len(files)))
 	for i, f := range files {
@@ -270,11 +270,11 @@ func runTopFilesUI(lang Lang, ui *UI, rep *Report) {
 func runBrowserCacheUI(lang Lang, ui *UI, rep *Report) {
 	ui.step(T(lang, "running", T(lang, "name_browser_cache")))
 	ui.warn(T(lang, "browser_warning"))
-	
+
 	live := ui.track(T(lang, "name_browser_cache"), T(lang, "working"), T(lang, "files_n"))
 	list := cleanBrowserCaches(browserCachePaths(), live.setCount)
 	live.stopClear()
-	
+
 	removed, freed, skipped, present, errs := foldStats(list)
 	if present > 0 || removed > 0 {
 		m := msg{"done_browser_cache", []any{removed, size(freed), skipped}}
@@ -294,38 +294,38 @@ func runBrowserCacheUI(lang Lang, ui *UI, rep *Report) {
 
 func runFlushDNSUI(lang Lang, ui *UI, rep *Report) {
 	ui.step(T(lang, "running", T(lang, "name_flush_dns")))
-	
+
 	live := ui.track(T(lang, "name_flush_dns"), T(lang, "working"), "")
 	err := flushDNS()
 	live.stopClear()
-	
+
 	if err != nil {
 		m := msg{"fail_cmd", []any{tr("name_flush_dns"), -1, errDetail(err)}}
 		rep.addFail(m)
 		ui.err(m.Text(lang))
 		return
 	}
-	
+
 	m := msg{"done_flush_dns", nil}
 	rep.addDone(m)
 	ui.ok(m.Text(lang))
-	
+
 	fmt.Fprintln(ui.out)
 	if !isYes(ui.Ask("  " + T(lang, "winsock_confirm"))) {
 		return
 	}
-	
+
 	live = ui.track(T(lang, "name_winsock_reset"), T(lang, "working"), "")
 	err = resetWinsock()
 	live.stopClear()
-	
+
 	if err != nil {
 		m := msg{"fail_cmd", []any{tr("name_winsock_reset"), -1, errDetail(err)}}
 		rep.addFail(m)
 		ui.err(m.Text(lang))
 		return
 	}
-	
+
 	m = msg{"done_winsock_reset", nil}
 	rep.addDone(m)
 	ui.ok(m.Text(lang))
