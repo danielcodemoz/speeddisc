@@ -15,7 +15,7 @@ class Parse(HTMLParser):
   if tag=='h1':self.h1+=1
 pages=[root/'index.html',root/'en/index.html',*root.glob('guias/*.html'),*root.glob('en/guides/*.html')];errors=[];parsed={}
 for p in pages:
- d=Parse();d.feed(p.read_text());parsed[p]=d
+ d=Parse();d.feed(p.read_text(encoding="utf-8"));parsed[p]=d
  if d.h1!=1:errors.append(f'{p}: h1 count {d.h1}')
  if len(d.ids)!=len(set(d.ids)):errors.append(f'{p}: duplicate ids')
  for asset in d.assets:
@@ -34,8 +34,9 @@ for p,d in parsed.items():
 for p in [root/'index.html',root/'en/index.html']:
  for alias in ['fazer','pacotes','correr','smartscreen','limites','obter','kits','main']:
   assert alias in parsed[p].ids,alias
-for filename, expected in json.loads((root/'_source/legacy-sha256.json').read_text()).items():
+for filename, expected in json.loads((root/'_source/legacy-sha256.json').read_text(encoding="utf-8")).items():
  assert hashlib.sha256((root/filename).read_bytes()).hexdigest()==expected,filename
-rel=json.loads((root/'release-verification.json').read_text());assert all(x['matches_github_digest'] for x in rel['assets'])
+rel=json.loads((root/'release-verification.json').read_text(encoding="utf-8"));assert all(x['matches_github_digest'] for x in rel['assets'])
 report={'pages_checked':len(pages),'broken_links_or_assets':errors,'legacy_files_unchanged':True,'legacy_anchor_aliases_present':True,'release_assets_verified':len(rel['assets']),'browser_layout_tests':'BLOCKED: Chromium socket Operation not permitted; cloud browser cannot reach local server. No screenshot or visual/mobile pass claimed.'}
-(root/'_source/static-test-results.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2));assert not errors
+with (root/'_source/static-test-results.json').open("w", encoding="utf-8", newline="\n") as out: out.write(json.dumps(report,indent=2))
+print(json.dumps(report,indent=2));assert not errors
