@@ -221,17 +221,31 @@ function copyToClipboard(text, row) {
 function fallbackCopy(text, row) {
   var textarea = document.createElement('textarea');
   textarea.value = text;
+  textarea.setAttribute('readonly', '');
   textarea.style.position = 'fixed';
   textarea.style.opacity = '0';
   document.body.appendChild(textarea);
   textarea.select();
+  textarea.setSelectionRange(0, text.length);
+  var ok = false;
   try {
-    document.execCommand('copy');
-    showCopiedFeedback(row);
+    ok = document.execCommand('copy');
   } catch (err) {
     console.error('Fallback copy failed:', err);
   }
   document.body.removeChild(textarea);
+  if (ok) showCopiedFeedback(row); else showCopyError(row);
+}
+
+function showCopyError(row) {
+  var fb = row.querySelector('.copy-feedback');
+  var ok = fb ? fb.textContent : '';
+  if (fb) fb.textContent = currentLang === 'pt' ? 'Não foi possível copiar. Selecione e copie manualmente.' : 'Could not copy. Select and copy manually.';
+  row.classList.add('copied', 'failed');
+  setTimeout(function() {
+    row.classList.remove('copied', 'failed');
+    if (fb) fb.textContent = ok;
+  }, 3000);
 }
 
 function showCopiedFeedback(row) {
@@ -279,6 +293,16 @@ function updateCommandsLang(lang) {
     search.placeholder = 'Search commands...';
   }
 }
+
+// Empty-state reset
+document.getElementById('clear-search').addEventListener('click', function() {
+  var s = document.getElementById('search');
+  s.value = '';
+  currentCategory = 'all';
+  filterCommands('');
+  renderFilterChips();
+  s.focus();
+});
 
 // Search handler
 document.getElementById('search').addEventListener('input', function(e) {
