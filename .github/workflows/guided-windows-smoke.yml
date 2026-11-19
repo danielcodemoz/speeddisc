@@ -1,0 +1,53 @@
+# Install as .github/workflows/guided-windows-smoke.yml on the PR branch.
+name: Guided Windows smoke (not standard-user acceptance)
+on:
+  pull_request:
+    paths: ['guided/**', '.github/workflows/guided-windows-smoke.yml']
+  push:
+    branches: ['codex/speeddisc-guided-preview']
+    paths: ['guided/**', '.github/workflows/guided-windows-smoke.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: guided-windows-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  smoke:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: guided
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, verified official tag
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5, verified official tag
+        with:
+          go-version-file: guided/go.mod
+          cache: false
+      - name: Record identity and acceptance boundary
+        run: |
+          $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+          $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+          $admin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          "Identity=$($identity.Name); AdministratorInCurrentToken=$admin" | Write-Output
+          "## Guided Windows runtime smoke" >> $env:GITHUB_STEP_SUMMARY
+          "Runner: Windows Server 2022. Administrator in current token: $admin." >> $env:GITHUB_STEP_SUMMARY
+          "This is NOT standard-user Windows 10/11, UAC/SmartScreen or manual console acceptance. No accounts, privileges, ACLs, policies or security settings are changed." >> $env:GITHUB_STEP_SUMMARY
+      - name: Vet and build our source only
+        run: |
+          go vet ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go build -trimpath -o "$env:RUNNER_TEMP\SpeedDisc-Guided-smoke.exe" .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run fixtures and portable process on Windows
+        env:
+          SPEEDDISC_SMOKE_EXE: ${{ runner.temp }}\SpeedDisc-Guided-smoke.exe
+        run: |
+          go test -count=1 -v ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "Runtime fixture suite passed. Check test logs for skips; standard-user acceptance remains pending." >> $env:GITHUB_STEP_SUMMARY
+      # Deliberately no artifact upload, release, deployment or public binary.
