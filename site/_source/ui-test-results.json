@@ -1,0 +1,30 @@
+[
+  {
+    "language": "pt",
+    "passed": [
+      "accent-insensitive search",
+      "hyphenated Wi-Fi",
+      "category filters",
+      "empty state",
+      "reset",
+      "theme state/storage",
+      "submit scroll",
+      "print handler"
+    ],
+    "limitation": "Logic-level mocked DOM, not a rendered browser or actual keyboard test."
+  },
+  {
+    "language": "en",
+    "passed": [
+      "accent-insensitive search",
+      "hyphenated Wi-Fi",
+      "category filters",
+      "empty state",
+      "reset",
+      "theme state/storage",
+      "submit scroll",
+      "print handler"
+    ],
+    "limitation": "Logic-level mocked DOM, not a rendered browser or actual keyboard test."
+  }
+]

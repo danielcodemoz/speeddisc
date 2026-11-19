@@ -1,0 +1,49 @@
+{
+  "tag": "v0.4.0",
+  "checked_utc": "2026-11-19",
+  "method": "Downloaded bytes and compared SHA-256 with GitHub release digest. Nothing executed.",
+  "assets": [
+    {
+      "name": "SpeedDisc-Escola.cmd",
+      "url": "https://github.com/danielcodemoz/speeddisc/releases/download/v0.4.0/SpeedDisc-Escola.cmd",
+      "size": 1417,
+      "sha256": "450d50a7c151b2e279a63f21c9c7a2b9d667ffe5150aa1e6a1d4698c88522ed6",
+      "matches_github_digest": true
+    },
+    {
+      "name": "SpeedDisc-launch.ps1",
+      "url": "https://github.com/danielcodemoz/speeddisc/releases/download/v0.4.0/SpeedDisc-launch.ps1",
+      "size": 8381,
+      "sha256": "ef0df394307e7fa41fef585d7a6887af8cfbce91efaeb4be4033a4a76785c6c5",
+      "matches_github_digest": true
+    },
+    {
+      "name": "SpeedDisc-PosFormatacao.cmd",
+      "url": "https://github.com/danielcodemoz/speeddisc/releases/download/v0.4.0/SpeedDisc-PosFormatacao.cmd",
+      "size": 1592,
+      "sha256": "1dd72cf69c1d8c4348cf62c4d08ed0641cab3a7b61b3570f1bff76e63ff0772a",
+      "matches_github_digest": true
+    },
+    {
+      "name": "SpeedDisc-SoVer.cmd",
+      "url": "https://github.com/danielcodemoz/speeddisc/releases/download/v0.4.0/SpeedDisc-SoVer.cmd",
+      "size": 1360,
+      "sha256": "8f6c25892a6c3e3a9553b4f9e9a218226c6813063f324d2e03b74eb1e41c2268",
+      "matches_github_digest": true
+    },
+    {
+      "name": "SpeedDisc-USB.cmd",
+      "url": "https://github.com/danielcodemoz/speeddisc/releases/download/v0.4.0/SpeedDisc-USB.cmd",
+      "size": 1383,
+      "sha256": "b2127714157be6bc06595f7d010c956dc2169fac60b760886198bdc733b7580a",
+      "matches_github_digest": true
+    },
+    {
+      "name": "SpeedDisc.exe",
+      "url": "https://github.com/danielcodemoz/speeddisc/releases/download/v0.4.0/SpeedDisc.exe",
+      "size": 2889728,
+      "sha256": "75ff68d59e65407a129b97a08b181e271de46f14b095d783226db0ce257e3580",
+      "matches_github_digest": true
+    }
+  ]
+}
