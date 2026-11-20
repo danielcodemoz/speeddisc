@@ -1,14 +1,19 @@
 from pathlib import Path
 from html.parser import HTMLParser
 from urllib.parse import urlparse,unquote
-import json,hashlib,re
+import ast,json,hashlib,re
 root=Path(__file__).resolve().parents[1]
 class Parse(HTMLParser):
- def __init__(self):super().__init__();self.ids=[];self.links=[];self.assets=[];self.lang=None;self.h1=0
+ def __init__(self):super().__init__();self.ids=[];self.links=[];self.assets=[];self.lang=None;self.h1=0;self.platforms={}
  def handle_starttag(self,tag,attrs):
   a=dict(attrs)
   if 'id' in a:self.ids.append(a['id'])
   if tag=='a' and 'href'in a:self.links.append(a['href'])
+  if tag=='a' and 'platform-download' in a.get('class','').split():
+   for name in ('windows','linux'):
+    if 'platform-'+name in a['class'].split():
+     assert name not in self.platforms
+     self.platforms[name]=a.get('href')
   if tag in ['script','img'] and a.get('src'):self.assets.append(a['src'])
   if tag=='link' and a.get('rel') in ['stylesheet','icon','preload']:self.assets.append(a['href'])
   if tag=='html':self.lang=a.get('lang')
@@ -31,9 +36,18 @@ for p,d in parsed.items():
   if target.is_dir():target/= 'index.html'
   if not target.exists():errors.append(f'Missing link {link} from {p.name}')
   if u.fragment and target in parsed and unquote(u.fragment) not in parsed[target].ids:errors.append(f'Missing anchor {link}')
+build=ast.parse((root/'_source/build.py').read_text(encoding='utf-8'))
+linux_asset=next(ast.literal_eval(n.value) for n in build.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='LINUX_RELEASE_URL' for t in n.targets))
+if linux_asset is not None:
+ assert re.fullmatch(r'https://github\.com/danielcodemoz/speeddisc/releases/download/v[^/]+/[^/]+',linux_asset)
+ assert not linux_asset.lower().endswith('.exe')
 for p in [root/'index.html',root/'en/index.html']:
  for alias in ['fazer','pacotes','correr','smartscreen','limites','obter','kits','main']:
   assert alias in parsed[p].ids,alias
+ assert parsed[p].platforms=={'windows':'https://github.com/danielcodemoz/speeddisc/releases/download/v0.4.0/SpeedDisc.exe','linux':linux_asset or '#linux-edition'}
+ assert 'linux-edition' in parsed[p].ids
+ if linux_asset is None:
+  assert ('Em teste' if parsed[p].lang=='pt-PT' else 'In testing') in p.read_text(encoding='utf-8')
 for filename, expected in json.loads((root/'_source/legacy-sha256.json').read_text(encoding="utf-8")).items():
  assert hashlib.sha256((root/filename).read_bytes()).hexdigest()==expected,filename
 commands=[json.loads(value) for value in re.findall(r'\bcmd:\s*("(?:\\.|[^"\\])*")',(root/'comandos.js').read_text(encoding="utf-8"))]

@@ -1,0 +1,95 @@
+/* Homepage-only OS choices. Both platforms stay visible; availability is always written. */
+.platform-downloads {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:clamp(10px,2vw,18px);
+}
+.platform-download {
+  --platform-tone:#12605c;
+  --platform-bg:#e6f4ed;
+  --platform-bg-hover:#d8f0e3;
+  --platform-edge:#70a993;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  min-width:0;
+  min-height:76px;
+  align-items:center;
+  gap:clamp(10px,1.5vw,16px);
+  padding:clamp(11px,2vw,17px);
+  border:1px solid var(--platform-edge);
+  border-radius:16px;
+  color:var(--ink);
+  background:var(--platform-bg);
+  text-decoration:none;
+}
+.platform-linux {
+  --platform-tone:#775011;
+  --platform-bg:#fbf4e4;
+  --platform-bg-hover:#f7edcf;
+  --platform-edge:#bc9b62;
+}
+[data-theme="dark"] .platform-windows {
+  --platform-tone:#aaf2d1;
+  --platform-bg:#203b37;
+  --platform-bg-hover:#294841;
+  --platform-edge:#649887;
+}
+[data-theme="dark"] .platform-linux {
+  --platform-tone:#ffd792;
+  --platform-bg:#362f26;
+  --platform-bg-hover:#473a2b;
+  --platform-edge:#a28454;
+}
+.platform-download:focus-visible {
+  outline:2px solid var(--platform-tone);
+  outline-offset:3px;
+}
+@media(hover:hover) {
+  .platform-download:hover {background:var(--platform-bg-hover);border-color:var(--platform-tone);}
+}
+.platform-icon {
+  display:grid;
+  place-items:center;
+  width:44px;
+  height:44px;
+  border-radius:11px;
+  background:#f7fffa;
+  color:#12605c;
+}
+.platform-linux .platform-icon {background:#fff4d8;}
+.platform-icon svg {width:25px;height:25px;}
+.platform-copy {min-width:0;display:grid;gap:4px;overflow-wrap:anywhere;}
+.platform-copy strong {font-size:clamp(15px,1.7vw,18px);line-height:1.2;}
+.platform-copy span {font-size:12px;line-height:1.4;color:var(--platform-tone);}
+.platform-download>svg {width:20px;height:20px;color:var(--platform-tone);}
+.linux-status {
+  display:flex;
+  gap:12px;
+  margin:12px 0 20px;
+  padding:14px 16px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  align-items:flex-start;
+  background:var(--surface);
+  color:var(--ink);
+}
+.linux-status:target,.linux-status:focus {
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+.linux-status>svg {color:var(--accent);width:18px;height:18px;flex:none;margin-top:2px;}
+.linux-status h3 {font-size:16px;line-height:1.3;}
+.linux-status h3 span {
+  display:inline-block;
+  color:var(--accent);
+  background:var(--accent-soft);
+  border-radius:16px;
+  padding:3px 8px;
+  margin-inline-start:5px;
+  font-size:11px;
+  letter-spacing:.02em;
+}
+.linux-status p {margin:6px 0 0;font-size:14px;line-height:1.5;}
+@media(max-width:620px) {
+  .platform-downloads {grid-template-columns:minmax(0,1fr);}
+}
