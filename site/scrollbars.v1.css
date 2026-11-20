@@ -1,0 +1,32 @@
+/* Keep scrolling native; customise the track and thumb, not the interaction. */
+:root {
+  --sd-scroll-track: #e8eeeb;
+  --sd-scroll-thumb: #377d64;
+  --sd-scroll-over: #23674f;
+  --sd-scroll-down: #17543f;
+}
+html[data-theme="dark"] {
+  --sd-scroll-track: #151f24;
+  --sd-scroll-thumb: #63be9c;
+  --sd-scroll-over: #90e1bf;
+  --sd-scroll-down: #b0efd3;
+}
+
+@media screen and (forced-colors: none) {
+  html { scrollbar-color: var(--sd-scroll-thumb) var(--sd-scroll-track); }
+  @supports selector(::-webkit-scrollbar) {
+    /* Blink/WebKit: keep a full-width hit area around the rounded thumb. */
+    html { scrollbar-color: auto; }
+    ::-webkit-scrollbar { width: 14px; height: 14px; }
+    ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: var(--sd-scroll-track); }
+    ::-webkit-scrollbar-thumb {
+      background: var(--sd-scroll-thumb) padding-box;
+      border: 3px solid transparent;
+      border-radius: 999px;
+      min-height: 36px;
+      min-width: 36px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background-color: var(--sd-scroll-over); }
+    ::-webkit-scrollbar-thumb:active { background-color: var(--sd-scroll-down); }
+  }
+}
