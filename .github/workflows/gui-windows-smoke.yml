@@ -55,6 +55,10 @@ jobs:
         shell: pwsh
         run: |
           ./scripts/smoke-gui.ps1 -Executable "$env:RUNNER_TEMP/gui-app/SpeedDisc-GUI.exe" -EvidenceDirectory "$env:RUNNER_TEMP/gui-evidence/demo" -Demo
+      - name: Capture compact English in-progress demo using synthetic state
+        shell: pwsh
+        run: |
+          ./scripts/smoke-gui.ps1 -Executable "$env:RUNNER_TEMP/gui-app/SpeedDisc-GUI.exe" -EvidenceDirectory "$env:RUNNER_TEMP/gui-evidence/running-en" -Running
       - name: Retain window proof when available (no executable)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

@@ -25,6 +25,16 @@ type guiOptions struct {
 	Winsock    bool
 	StartupIDs []string
 	Confirmed  bool
+	Progress   func(guiProgress)
+}
+
+// Progress describes the active catalog step. Percent is -1 until an
+// actual numeric update is available. The callback may run on a helper's
+// output goroutine; keep it fast and marshal any UI changes to the UI thread.
+type guiProgress struct {
+	Step, Total int
+	Label       string
+	Percent     int
 }
 
 type guiStartupItem struct {
@@ -126,6 +136,11 @@ func guiRun(id string, lang Lang, options guiOptions) report.Result {
 		startup: func(l Lang, u *UI, r *Report) { guiRunStartup(l, u, r, options.StartupIDs) },
 		winsock: func() bool { return options.Winsock },
 	}
+	if options.Progress != nil {
+		hooks.progress = func(step, total int, label string, percent int) {
+			options.Progress(guiProgress{Step: step, Total: total, Label: label, Percent: percent})
+		}
+	}
 	executeWithHooks(lang, acts, ui, rep, hooks)
 
 	res.Duration = time.Since(start)
@@ -163,6 +178,9 @@ func guiRun(id string, lang Lang, options guiOptions) report.Result {
 		res.Rows = append(res.Rows, report.Row{Label: outLabel, Value: guiText(lang,
 			"Mostra até 20 ficheiros de pelo menos 100 MiB em locais acessíveis. A pesquisa é limitada a 30 segundos e pode ficar incompleta.",
 			"Shows up to 20 files of at least 100 MiB in accessible locations. Search is limited to 30 seconds and may be incomplete.")})
+	}
+	if hooks.progress != nil {
+		hooks.progress(len(acts), len(acts), guiText(lang, "Resultado disponível", "Result available"), -1)
 	}
 	return res
 }

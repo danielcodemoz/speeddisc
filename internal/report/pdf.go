@@ -31,19 +31,21 @@ type fontSpec struct {
 	ascent, descent, cap, stem int
 }
 
-// Existing product blue-night / violet palette, supplemented with teal.
+// SpeedDisc's original petrol and mint on a light neutral sheet.
 const (
-	paper      = 0xf5f6fb
+	paper      = 0xf5f7f4
 	white      = 0xffffff
-	navy       = 0x161b2e
-	deep       = 0x233554
-	ink        = 0x242941
-	muted      = 0x555e79
-	violet     = 0x563c93
-	lilac      = 0xd7c8ff
+	forest     = 0x142c27
+	deep       = 0x34554b
+	ink        = 0x192e29
+	muted      = 0x4a635b
+	petrol     = 0x0e6b62
+	mint       = 0xa8e4d7
 	teal       = 0x08776e
-	line       = 0xd9def0
-	stripe     = 0xf0f2fa
+	line       = 0xd2e0da
+	stripe     = 0xeaf3ef
+	capGreen   = 0x66bcaa
+	mastMuted  = 0xbad8ce
 	pageW      = 595.28
 	pageH      = 841.89
 	left       = 41.0
@@ -191,18 +193,18 @@ func (c *canvas) text(x, y, size float64, col int, bold bool, s string) {
 func startPage(r Result, l labels) (*canvas, float64) {
 	c := &canvas{}
 	c.box(0, 0, pageW, pageH, paper)
-	c.box(0, pageH-9, pageW*.62, 9, 0x8d75ce)
+	c.box(0, pageH-9, pageW*.62, 9, capGreen)
 	c.box(pageW*.62, pageH-9, pageW*.38, 9, teal)
 	top := pageH - 34
 	title := limitLines(wrap(r.Title, 23, tableW-44, true), 4, tableW-44, 23, true)
 	headerH := 94.0 + float64(len(title))*27
 	base := top - headerH
-	c.box(left, base, tableW, headerH, navy)
-	c.box(left, base, 4, headerH, 0x8d75ce)
+	c.box(left, base, tableW, headerH, forest)
+	c.box(left, base, 4, headerH, capGreen)
 	fmt.Fprintf(c, "q 41 0 0 41 %.2f %.2f cm /Logo Do Q\n", left+20, top-62)
 	c.text(left+73, top-38, 17, white, true, "SpeedDisc")
-	c.text(left+73, top-54, 9.2, lilac, true, encode(strings.ToUpper(l.report)))
-	c.text(left+tableW-149, top-39, 9, 0xc5cfe3, false, "speeddisc.danielpro.dev")
+	c.text(left+73, top-54, 9.2, mint, true, encode(strings.ToUpper(l.report)))
+	c.text(left+tableW-149, top-39, 9, mastMuted, false, "speeddisc.danielpro.dev")
 	c.box(left+22, top-75, tableW-44, .7, deep)
 	for i, s := range title {
 		c.text(left+22, top-102-float64(i)*27, 23, white, true, s)
@@ -233,7 +235,7 @@ func startPage(r Result, l labels) (*canvas, float64) {
 	}
 
 	y := cardTop - cardH - 16
-	c.box(left, y-27, tableW, 27, violet)
+	c.box(left, y-27, tableW, 27, petrol)
 	c.text(left+12, y-17, 9.4, white, true, encode(strings.ToUpper(l.field)))
 	c.text(left+fieldW+12, y-17, 9.4, white, true, encode(strings.ToUpper(l.value)))
 	return c, y - 27
@@ -357,7 +359,12 @@ var brand = sync.OnceValues(func() ([]byte, error) {
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
 			r, g, b, _ := im.At(x, y).RGBA()
-			pixels = append(pixels, byte(r>>8), byte(g>>8), byte(b>>8))
+			// Recolour only the old report masthead matte, not the site logo.
+			if r>>8 == 0x16 && g>>8 == 0x1b && b>>8 == 0x2e {
+				pixels = append(pixels, byte(forest>>16), byte(forest>>8&255), byte(forest&255))
+			} else {
+				pixels = append(pixels, byte(r>>8), byte(g>>8), byte(b>>8))
+			}
 		}
 	}
 	rgb, err := deflate(pixels)

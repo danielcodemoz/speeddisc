@@ -44,18 +44,21 @@ var (
 )
 
 const (
-	idSearch  = 101
-	idList    = 102
-	idRun     = 103
-	idTxt     = 104
-	idPDF     = 105
-	idLang    = 106
-	idTheme   = 107
-	idOptions = 108
-	idOutput  = 109
-	idNav     = 120
-	wmDone    = 0x8001
-	wmStartup = 0x8002
+	idSearch   = 101
+	idList     = 102
+	idRun      = 103
+	idTxt      = 104
+	idPDF      = 105
+	idLang     = 106
+	idTheme    = 107
+	idOptions  = 108
+	idOutput   = 109
+	idProgress = 110
+	idMarquee  = 111
+	idNav      = 120
+	wmDone     = 0x8001
+	wmStartup  = 0x8002
+	wmProgress = 0x8003
 )
 
 type dRect struct{ L, T, R, B int32 }
@@ -98,6 +101,9 @@ type deskState struct {
 	brush                               uintptr
 	ui                                  deskPalette
 	light, admin, busy, preparing, demo bool
+	demoRunning                         bool
+	progress                            chan guiProgress
+	stage                               guiProgress
 	lang                                Lang
 	mode                                string
 	rows                                []guiItem
@@ -124,9 +130,19 @@ func rgb(r, g, b byte) uintptr { return uintptr(r) | uintptr(g)<<8 | uintptr(b)<
 func rgbHex(x uint32) uintptr  { return rgb(byte(x>>16), byte(x>>8), byte(x)) }
 func deskColors(light bool) deskPalette {
 	if light {
-		return deskPalette{rgbHex(0xF1F3FA), rgbHex(0xFFFFFF), rgbHex(0xE9ECF8), rgbHex(0xC1CBE0), rgbHex(0x1B2642), rgbHex(0x465772), rgbHex(0x45479F), rgbHex(0xFFFFFF), rgbHex(0x2B3F69), rgbHex(0x563B73), rgbHex(0xFFFFFF), rgbHex(0xDEE3FA), rgbHex(0x14695E), rgbHex(0x8B3F1B)}
+		return deskPalette{
+			bg: rgbHex(0xF2F5F6), panel: rgbHex(0xFFFFFF), raised: rgbHex(0xE6EEEE), line: rgbHex(0xA8BCBB),
+			ink: rgbHex(0x16272B), muted: rgbHex(0x51676A), accent: rgbHex(0x176653), onAccent: rgbHex(0xFFFFFF),
+			h1: rgbHex(0x15343C), h2: rgbHex(0x215A47), heroInk: rgbHex(0xFFFFFF), heroMuted: rgbHex(0xD7F2EA),
+			ok: rgbHex(0x126552), warn: rgbHex(0x8B3F1B),
+		}
 	}
-	return deskPalette{rgbHex(0x101426), rgbHex(0x1B2339), rgbHex(0x25314D), rgbHex(0x455576), rgbHex(0xF3F3FF), rgbHex(0xBAC6E0), rgbHex(0xD2BEFF), rgbHex(0x221739), rgbHex(0x273C65), rgbHex(0x4F356A), rgbHex(0xFFFFFF), rgbHex(0xDEE3FA), rgbHex(0x9EE7D9), rgbHex(0xFFCD99)}
+	return deskPalette{
+		bg: rgbHex(0x10181D), panel: rgbHex(0x1B252A), raised: rgbHex(0x26343A), line: rgbHex(0x4D6265),
+		ink: rgbHex(0xECF4F3), muted: rgbHex(0xAFC5C6), accent: rgbHex(0x85E7BF), onAccent: rgbHex(0x112820),
+		h1: rgbHex(0x173640), h2: rgbHex(0x215744), heroInk: rgbHex(0xFFFFFF), heroMuted: rgbHex(0xD7F2EA),
+		ok: rgbHex(0xA7E6CA), warn: rgbHex(0xFFCD99),
+	}
 }
 func u16(x string) *uint16 {
 	v, _ := windows.UTF16PtrFromString(strings.ReplaceAll(x, "\x00", ""))
@@ -212,7 +228,11 @@ func (s *deskState) fonts() {
 
 func (s *deskState) add(id int, cls string, style uint32) {
 	c, t := u16(cls), u16("")
-	h, _, _ := dCreate.Call(0, ptr(c), ptr(t), uintptr(style|0x50010000), 0, 0, 0, 0, s.win, uintptr(id), s.instance, 0)
+	base := uint32(0x50010000)
+	if id == idProgress || id == idMarquee {
+		base = 0x40000000
+	}
+	h, _, _ := dCreate.Call(0, ptr(c), ptr(t), uintptr(style|base), 0, 0, 0, 0, s.win, uintptr(id), s.instance, 0)
 	runtime.KeepAlive(c)
 	runtime.KeepAlive(t)
 	s.h[id] = h
@@ -227,10 +247,16 @@ func (s *deskState) controls() {
 	s.add(idSearch, "EDIT", 0x0080)
 	s.add(idList, "LISTBOX", 0x00200000|0x0001|0x0100|0x0010|0x0040)
 	s.add(idOutput, "EDIT", 0x00200000|0x0004|0x0040|0x0800)
+	ic := [2]uint32{8, 0x20}
+	windows.NewLazySystemDLL("comctl32.dll").NewProc("InitCommonControlsEx").Call(uintptr(unsafe.Pointer(&ic)))
+	s.add(idProgress, "msctls_progress32", 0x01)
+	s.add(idMarquee, "msctls_progress32", 0x08)
+	dMessage(s.h[idProgress], 0x406, 0, 100)
 	s.fonts()
 	s.updateTheme()
 	s.captions()
 	s.filter("3")
+	dText(s.h[idOutput], s.l("O resultado aparecerá aqui após a tarefa.", "The result will appear here after the task."))
 }
 func (s *deskState) captions() {
 	for i, n := range deskCatNames {
@@ -355,7 +381,9 @@ func (s *deskState) sync() {
 	if s.picking {
 		dText(s.h[idOptions], s.l("Voltar às ferramentas", "Back to tools"))
 	}
-	s.hShow(idOptions, showOptions && !s.demo)
+	s.hShow(idOptions, showOptions && !s.demo && !s.busy)
+	s.hShow(idRun, !s.busy)
+	s.refreshProgress()
 	s.invalid()
 }
 func (s *deskState) layout() {
@@ -379,6 +407,8 @@ func (s *deskState) layout() {
 	s.lay(idList, x+9, y+114, left-18, h-y-163)
 	by := y + g.runTop
 	s.lay(idRun, right+13, by, rw-26, 38)
+	s.lay(idProgress, right+13, by+33, rw-26, 16)
+	s.lay(idMarquee, right+13, by+33, rw-26, 16)
 	s.lay(idOptions, right+13, y+g.optionsTop, rw-26, 32)
 	s.lay(idOutput, right+13, g.resultTop, rw-26, g.resultBottom-g.resultTop)
 	s.lay(idTxt, right+13, g.exportTop, (rw-34)/2, 34)
@@ -520,12 +550,24 @@ func (s *deskState) paint(dc uintptr) {
 	fill(dc, s.box(right+13, y+g.divTop, rw-26, 1), s.ui.line)
 	status := s.l("Último resultado", "Last result")
 	if s.busy {
-		status = s.l("A processar…", "Working…")
+		status = s.l("Operação em curso", "Operation in progress")
 	}
 	if !s.busy && s.runResult != nil {
-		status = s.l("Último resultado: ", "Last result: ") + s.runResult.Status
+		status = s.runResult.Status
 	}
-	plot(dc, s.fBold, s.ui.ink, s.box(right+13, y+g.resultHeading, rw-26, 23), status, 0x20)
+	statusInk := s.ui.ink
+	if s.runResult != nil && !s.busy {
+		switch s.runResult.Status {
+		case "Concluído", "Completed", "Exemplo fictício", "Fictional example":
+			statusInk = s.ui.ok
+		default:
+			statusInk = s.ui.warn
+		}
+	}
+	plot(dc, s.fBold, statusInk, s.box(right+13, y+g.resultHeading, rw-26, 23), status, 0x20|0x8000)
+	if s.busy {
+		plot(dc, s.fBold, s.ui.accent, s.box(right+13, y+g.runTop, rw-26, 28), s.progressCaption(), 0x20|0x8000)
+	}
 	plot(dc, s.fSmall, s.ui.muted, s.box(x, h-24, body, 20), s.l("RELATÓRIOS LOCAIS  ·  NADA É ENVIADO", "LOCAL REPORTS  ·  NOTHING IS UPLOADED"), 0x20)
 }
 func (s *deskState) drawControl(v *dDrawItem) {
@@ -770,22 +812,78 @@ func (s *deskState) run() {
 	}
 	s.busy = true
 	s.runResult = nil
-	dText(s.h[idOutput], s.l("A operação está em curso. Esta janela continuará disponível.", "The operation is running. This window will stay responsive."))
+	s.progress = make(chan guiProgress, 1)
+	progress := s.progress
+	s.showProgress(guiProgress{Label: a.Title, Percent: -1})
 	s.sync()
 	lang := s.lang
 	ch := s.work
 	win := s.win
+	opts.Progress = func(stage guiProgress) {
+		select {
+		case <-progress:
+		default:
+		}
+		select {
+		case progress <- stage:
+		default:
+		}
+		dUser.NewProc("PostMessageW").Call(win, wmProgress, 0, 0)
+	}
 	go func() {
 		result := guiRun(a.ID, lang, opts)
 		ch <- result
 		dUser.NewProc("PostMessageW").Call(win, wmDone, 0, 0)
 	}()
 }
+func (s *deskState) progressCaption() string {
+	p := s.stage
+	label := s.l("A preparar…", "Preparing…")
+	if p.Step > 0 && p.Total > 0 {
+		label = fmt.Sprintf(s.l("Etapa %d de %d", "Step %d of %d"), p.Step, p.Total)
+	}
+	if p.Percent >= 0 {
+		label += fmt.Sprintf(" · %d%%", min(p.Percent, 100))
+	}
+	return label
+}
+
+func (s *deskState) refreshProgress() {
+	known := s.busy && s.stage.Percent >= 0
+	unknown := s.busy && !known
+	s.hShow(idProgress, known)
+	s.hShow(idMarquee, unknown)
+	if known {
+		dMessage(s.h[idProgress], 0x402, uintptr(min(100, s.stage.Percent)), 0)
+	}
+	m := uintptr(0)
+	if unknown {
+		m = 1
+	}
+	dMessage(s.h[idMarquee], 0x40a, m, 45)
+}
+
+func (s *deskState) showProgress(progress guiProgress) {
+	s.stage = progress
+	note := s.l("O Windows não forneceu uma percentagem para esta etapa.", "Windows has not reported a percentage for this step.")
+	if s.stage.Percent >= 0 {
+		note = s.l("A percentagem refere-se à etapa actual, não ao pacote inteiro.", "The percentage applies to the current step, not the whole package.")
+	}
+	if s.demoRunning {
+		note = s.l("Demonstração com dados fictícios. Nenhuma operação foi executada.", "Demo with fictional data. No operation was executed.")
+	}
+	dText(s.h[idOutput], s.progressCaption()+"\r\n"+s.stage.Label+"\r\n\r\n"+note)
+	s.refreshProgress()
+	s.invalid()
+}
+
 func (s *deskState) finish(r report.Result) {
 	s.busy = false
 	s.runResult = &r
 	var b strings.Builder
-	b.WriteString(r.Title + "\r\n\r\n")
+	b.WriteString(r.Title + "\r\n")
+	b.WriteString(fmt.Sprintf(s.l("%d registos · %s", "%d entries · %s"), len(r.Rows), r.Duration.Round(time.Millisecond)))
+	b.WriteString("\r\n\r\n")
 	for _, row := range r.Rows {
 		if b.Len() > 48000 {
 			b.WriteString("\r\n" + s.l("Consulte o ficheiro exportado para o relatório completo.", "See the exported file for the full report."))
@@ -888,7 +986,11 @@ func deskProc(hwnd uintptr, msg uint32, w, l uintptr) uintptr {
 		if s.pendingID != "" {
 			s.filter(s.pendingID)
 		}
-		if s.demo {
+		if s.demoRunning {
+			s.busy = true
+			s.showProgress(guiProgress{Step: 2, Total: 3, Percent: 42, Label: s.l("A verificar componentes do Windows", "Checking Windows components")})
+			s.sync()
+		} else if s.demo {
 			s.finish(report.Result{
 				Title:  s.l("Análise do sistema · Demonstração", "System analysis · Demo"),
 				Status: s.l("Exemplo fictício", "Fictional example"), Lang: s.l("pt", "en"),
@@ -942,6 +1044,15 @@ func deskProc(hwnd uintptr, msg uint32, w, l uintptr) uintptr {
 		dGDI.NewProc("SetTextColor").Call(w, s.ui.ink)
 		dGDI.NewProc("SetBkColor").Call(w, s.ui.panel)
 		return s.brush
+	case wmProgress:
+		select {
+		case stage := <-s.progress:
+			if s.busy && !s.demoRunning {
+				s.showProgress(stage)
+			}
+		default:
+		}
+		return 0
 	case wmDone:
 		select {
 		case r := <-s.work:
@@ -957,7 +1068,7 @@ func deskProc(hwnd uintptr, msg uint32, w, l uintptr) uintptr {
 		}
 		return 0
 	case 0x10: // WM_CLOSE
-		if s.busy || s.preparing {
+		if (s.busy && !s.demoRunning) || s.preparing {
 			s.message(s.l("Aguarde até a operação terminar.", "Wait for the operation to finish."), "SpeedDisc", 0x40)
 			return 0
 		}
@@ -1008,6 +1119,10 @@ func main() {
 	for _, a := range os.Args[1:] {
 		if a == "--demo" {
 			s.demo = true
+		}
+		if a == "--demo-running" {
+			s.demo = true
+			s.demoRunning = true
 		}
 		if a == "--lang=en" {
 			s.lang = otherLang(LangPT)

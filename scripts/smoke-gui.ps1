@@ -1,9 +1,12 @@
 param(
   [Parameter(Mandatory = $true)][string] $Executable,
   [Parameter(Mandatory = $true)][string] $EvidenceDirectory,
-  [switch] $Demo
+  [switch] $Demo,
+  [switch] $Running
 )
 $ErrorActionPreference = 'Stop'
+if ($Demo -and $Running) { throw 'Choose the completed demo (-Demo) or running demo (-Running), not both.' }
+$fixture = $Demo -or $Running
 Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
@@ -36,7 +39,7 @@ public static class SpeedDiscSmoke {
     public static extern bool IsWindowVisible(IntPtr window);
     [DllImport("user32.dll")]
     public static extern IntPtr GetDlgItem(IntPtr window, int id);
-    [DllImport("user32.dll", SetLastError=true)]
+    [DllImport("user32.dll", EntryPoint="SendMessageTimeoutW", ExactSpelling=true, SetLastError=true)]
     public static extern IntPtr SendMessageTimeout(IntPtr window, uint message, UIntPtr w, IntPtr l, uint flags, uint timeout, out UIntPtr result);
     [DllImport("user32.dll", SetLastError=true)]
     public static extern bool PrintWindow(IntPtr window, IntPtr buffer, uint flags);
@@ -50,6 +53,7 @@ $adminToken = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Admin
 $timer = [Diagnostics.Stopwatch]::StartNew()
 $params = @{ FilePath = $exe; WorkingDirectory = $evidence; PassThru = $true }
 if ($Demo) { $params.ArgumentList = @("--demo") }
+if ($Running) { $params.ArgumentList = @("--demo-running", "--lang=en") }
 $app = Start-Process @params
 try {
     $handle = [IntPtr]::Zero
@@ -67,6 +71,27 @@ try {
     $null = [SpeedDiscSmoke]::GetWindowThreadProcessId($handle, [ref]$windowPid)
     if ($windowPid -ne $app.Id -or $app.MainWindowTitle -notmatch '^SpeedDisc') {
         throw "Unexpected top-level window: PID $windowPid; title $($app.MainWindowTitle)"
+    }
+    if ($Running -and $app.MainWindowTitle -notmatch 'Portable workbench') {
+        throw "Running demo did not launch in English: $($app.MainWindowTitle)"
+    }
+    $readControl = { param([IntPtr] $control)
+        # WM_GETTEXT is marshalled by the window manager for standard controls.
+        # GetWindowText cannot read another process's edit/button text reliably.
+        $capacity = 1024
+        $bytes = [Runtime.InteropServices.Marshal]::AllocHGlobal($capacity * 2)
+        try {
+            [UIntPtr] $count = [UIntPtr]::Zero
+            [Runtime.InteropServices.Marshal]::WriteInt16($bytes, 0)
+            if ([SpeedDiscSmoke]::SendMessageTimeout($control, 0x000D, [UIntPtr]::new([uint32]$capacity), $bytes, 2, 2000, [ref]$count) -eq [IntPtr]::Zero) {
+                throw 'The native control did not respond to WM_GETTEXT.'
+            }
+            $length = $count.ToUInt64()
+            if ($length -ge $capacity) { throw "Invalid native text length ($length)." }
+            [Runtime.InteropServices.Marshal]::PtrToStringUni($bytes, [int]$length)
+        } finally {
+            [Runtime.InteropServices.Marshal]::FreeHGlobal($bytes)
+        }
     }
     if (-not $app.WaitForInputIdle(5000) -or -not $app.Responding) {
         throw 'SpeedDisc window is not processing messages.'
@@ -87,7 +112,7 @@ try {
     $rect = [SpeedDiscSmoke+RECT]::new()
     if (-not [SpeedDiscSmoke]::GetWindowRect($handle, [ref]$rect)) { throw 'Unable to read window dimensions.' }
     $compactFact = 'Compact sizing not exercised in the default launch.'
-    if ($Demo) {
+    if ($fixture) {
         # The app is per-monitor DPI aware. Disable coordinate virtualization on this
         # caller thread while measuring its window and children in screen pixels.
         $priorDpiContext = [SpeedDiscSmoke]::SetThreadDpiAwarenessContext([IntPtr]::new(-4))
@@ -134,7 +159,9 @@ try {
                 if ($next -eq [IntPtr]::Zero -or -not $tabOrder.Add($next)) { break }
             }
             $resultHeight = 0.0
-            foreach ($controlId in @(109, 104, 105)) {
+            $controlIDs = @(109, 104, 105)
+            if ($Running) { $controlIDs += 110 }
+            foreach ($controlId in $controlIDs) {
                 $control = [SpeedDiscSmoke]::GetDlgItem($handle, $controlId)
                 $bounds = [SpeedDiscSmoke+RECT]::new()
                 if ($control -eq [IntPtr]::Zero -or -not [SpeedDiscSmoke]::IsWindowVisible($control) -or
@@ -149,18 +176,45 @@ try {
                     $bounds.Bottom -gt ($clientOrigin.Y + $client.Bottom)) {
                     throw "Compact control #$controlId falls outside the client area."
                 }
-                if ($controlId -eq 109) {
-                    $resultHeight = $controlHeight / $scale
-                    if ($resultHeight -lt 55) {
-                        throw "Compact result edit is only $resultHeight logical units tall; expected at least 55."
+                switch ($controlId) {
+                    109 {
+                        $resultHeight = $controlHeight / $scale
+                        if ($resultHeight -lt 55) {
+                            throw "Compact result edit is only $resultHeight logical units tall; expected at least 55."
+                        }
+                        $visibleText = & $readControl $control
+                        if ($Demo -and $visibleText -notmatch '(?i)Demonstração|fictíci|Disco principal') {
+                            throw "Portuguese synthetic report text not found: $visibleText"
+                        }
+                        if ($Running -and ($visibleText -notmatch '(?i)step' -or $visibleText -notmatch 'Checking Windows components' -or $visibleText -notmatch '2\s*(?:/|of)\s*3' -or $visibleText -notmatch '42\s*%')) {
+                            throw "Expected English running text with step 2 of 3 and 42%: $visibleText"
+                        }
                     }
-                } elseif (-not [SpeedDiscSmoke]::IsWindowEnabled($control) -or
-                          -not ([SpeedDiscSmoke]::GetWindowLongW($control, -16) -band 0x00010000) -or
-                          -not $tabOrder.Contains($control)) {
-                    throw "Compact export control #$controlId is disabled or unreachable by Tab."
+                    110 {
+                        # PBM_GETPOS takes no cross-process pointer and returns the current position.
+                        [UIntPtr] $position = [UIntPtr]::Zero
+                        if ([SpeedDiscSmoke]::SendMessageTimeout($control, 0x0408, [UIntPtr]::Zero, [IntPtr]::Zero, 2, 2000, [ref]$position) -eq [IntPtr]::Zero -or $position.ToUInt64() -ne 42) {
+                            throw "Expected running progress 42%; native bar reports $($position.ToUInt64())%."
+                        }
+                    }
+                    default {
+                        $format = if ($controlId -eq 104) { 'TXT' } else { 'PDF' }
+                        $expected = if ($Running) { "Export $format" } else { "Exportar $format" }
+                        if ((& $readControl $control) -ne $expected) { throw "Expected localised button '$expected'." }
+                        if ($Running) {
+                            if ([SpeedDiscSmoke]::IsWindowEnabled($control) -or $tabOrder.Contains($control)) {
+                                throw "Export #$controlId is active while the app displays a running operation."
+                            }
+                        } elseif (-not [SpeedDiscSmoke]::IsWindowEnabled($control) -or
+                                  -not ([SpeedDiscSmoke]::GetWindowLongW($control, -16) -band 0x00010000) -or
+                                  -not $tabOrder.Contains($control)) {
+                            throw "Compact export control #$controlId is disabled or unreachable by Tab."
+                        }
+                    }
                 }
             }
-            $compactFact = "Compact synthetic demo: ${actualW}x${actualH} logical client at runner DPI $dpi; result height $([Math]::Round($resultHeight)) logical; both export controls inside client, enabled and in native Tab order."
+            $check = if ($Running) { 'English running detail step 2 of 3 at 42%, native progress visible at 42%, both exports visible but disabled' } else { 'Portuguese report readable, both localised exports visible, enabled and in native Tab order' }
+            $compactFact = "Compact synthetic demo: ${actualW}x${actualH} logical client at runner DPI $dpi; result height $([Math]::Round($resultHeight)) logical; $check."
         } finally {
             $null = [SpeedDiscSmoke]::SetThreadDpiAwarenessContext($priorDpiContext)
         }
@@ -174,7 +228,7 @@ try {
     $readyMs = $timer.ElapsedMilliseconds
     $workingBytes = $app.WorkingSet64
     $screenshotStatus = 'unavailable'
-    $screenshotName = if ($Demo) { 'speeddisc-gui-compact.png' } else { 'speeddisc-gui.png' }
+    $screenshotName = if ($Running) { 'speeddisc-gui-running-en-compact.png' } elseif ($Demo) { 'speeddisc-gui-report-pt-compact.png' } else { 'speeddisc-gui.png' }
     # Print exactly this process's window; never capture the runner desktop or use destructive controls.
     try {
         Add-Type -AssemblyName System.Drawing.Common
@@ -216,7 +270,7 @@ try {
         "User token administrator: $adminToken"
         "Time to responsive window on this runner (includes polling): ${readyMs} ms"
         "Working set on this runner: $workingBytes bytes"
-        "Screenshot: $screenshotStatus; synthetic demo: $Demo"
+        "Screenshot: $screenshotStatus; synthetic completed demo: $Demo; synthetic running demo: $Running"
         $compactFact
         'Compact sizing at runner DPI is not a 125%-DPI hardware or multi-monitor test.'
         'No maintenance operation, elevation request, system change or export was triggered.'

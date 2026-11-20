@@ -133,6 +133,7 @@ type runHooks struct {
 	selectedInfoOnly bool
 	startup          func(Lang, *UI, *Report)
 	winsock          func() bool
+	progress         func(step, total int, label string, percent int)
 }
 
 func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
@@ -140,12 +141,16 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 }
 
 func executeWithHooks(lang Lang, acts []Action, ui *UI, rep *Report, hooks runHooks) {
-	fresh := (!hooks.selectedInfoOnly || Contains(acts, ActInfo)) && rep.markSnap()
-	if fresh {
-		collectInfo(rep)
-	}
-	if fresh || Contains(acts, ActInfo) {
-		ui.section(lang, "rep_found", rep.FoundCopy())
+	// The CLI keeps its original automatic initial snapshot; GUI snapshots
+	// are explicit actions and therefore run after their progress notification.
+	if !hooks.selectedInfoOnly {
+		fresh := rep.markSnap()
+		if fresh {
+			collectInfo(rep)
+		}
+		if fresh || Contains(acts, ActInfo) {
+			ui.section(lang, "rep_found", rep.FoundCopy())
+		}
 	}
 
 	var diskBefore, diskAfter uint64
@@ -153,9 +158,19 @@ func executeWithHooks(lang Lang, acts []Action, ui *UI, rep *Report, hooks runHo
 		diskBefore, _ = getSystemDriveFree()
 	}
 
-	for _, a := range acts {
+	for i, a := range acts {
+		var actualPercent func(int)
+		if hooks.progress != nil {
+			step, total := i+1, len(acts)
+			label := actionProgressLabel(lang, a)
+			hooks.progress(step, total, label, -1)
+			actualPercent = func(n int) { hooks.progress(step, total, label, n) }
+		}
 		switch a {
 		case ActInfo:
+			if hooks.selectedInfoOnly && rep.markSnap() {
+				collectInfo(rep)
+			}
 		case ActRestore:
 			{
 				ui.step(T(lang, "running", T(lang, "name_restore")))
@@ -207,12 +222,12 @@ func executeWithHooks(lang Lang, acts []Action, ui *UI, rep *Report, hooks runHo
 		case ActSFC:
 			ui.step(T(lang, "running", T(lang, "name_sfc")))
 			ui.warn(T(lang, "long_running"))
-			code, tail, line := runSFC(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8)
+			code, tail, line := runSFC(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8, actualPercent)
 			recordCommand(rep, ui, lang, tr("name_sfc"), code, tail, false, line, T(lang, "done_sfc_line"))
 		case ActDISM:
 			ui.step(T(lang, "running", T(lang, "name_dism")))
 			ui.warn(T(lang, "long_running"))
-			code, tail, line := runDISM(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8)
+			code, tail, line := runDISM(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8, actualPercent)
 			recordCommand(rep, ui, lang, tr("name_dism"), code, tail, true, line, T(lang, "done_dism_line"))
 		case ActStartup:
 			if hooks.startup != nil {
@@ -223,7 +238,7 @@ func executeWithHooks(lang Lang, acts []Action, ui *UI, rep *Report, hooks runHo
 		case ActComponentCleanup:
 			ui.step(T(lang, "running", T(lang, "name_component_cleanup")))
 			ui.warn(T(lang, "long_running"))
-			code, tail, line := runComponentCleanup(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8)
+			code, tail, line := runComponentCleanup(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8, actualPercent)
 			recordCommand(rep, ui, lang, tr("name_component_cleanup"), code, tail, false, line, T(lang, "done_dism_line"))
 		case ActTopFiles:
 			runTopFilesUI(lang, ui, rep)
@@ -249,6 +264,45 @@ func executeWithHooks(lang Lang, acts []Action, ui *UI, rep *Report, hooks runHo
 			rep.addDone(m)
 			ui.ok(m.Text(lang))
 		}
+	}
+}
+
+// Use only bounded, localized catalog labels. Do not stream helper output
+// or local paths to the UI's progress event queue.
+func actionProgressLabel(lang Lang, action Action) string {
+	switch action {
+	case ActInfo:
+		return T(lang, "opt_info")
+	case ActRestore:
+		return T(lang, "name_restore")
+	case ActTemp:
+		return T(lang, "name_temp")
+	case ActWU:
+		return T(lang, "name_wu")
+	case ActThumb:
+		return T(lang, "name_thumb")
+	case ActDO:
+		return T(lang, "name_do")
+	case ActWER:
+		return T(lang, "name_wer")
+	case ActPower:
+		return T(lang, "name_power")
+	case ActSFC:
+		return T(lang, "name_sfc")
+	case ActDISM:
+		return T(lang, "name_dism")
+	case ActStartup:
+		return T(lang, "name_startup")
+	case ActComponentCleanup:
+		return T(lang, "name_component_cleanup")
+	case ActTopFiles:
+		return T(lang, "name_top_files")
+	case ActBrowserCache:
+		return T(lang, "name_browser_cache")
+	case ActFlushDNS:
+		return T(lang, "opt_flush_dns")
+	default:
+		return T(lang, "working")
 	}
 }
 
