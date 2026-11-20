@@ -107,7 +107,8 @@ try {
                 $nonClientHeight -lt 0 -or $nonClientHeight -gt 160*$scale) {
                 throw "Unexpected frame dimensions: ${nonClientWidth}x${nonClientHeight}"
             }
-            $targetWidth = [int][Math]::Round(1040 * $scale) + $nonClientWidth
+            $wantedWidth = [int][Math]::Min(1040, [Math]::Round(($client.Right - $client.Left) / $scale))
+            $targetWidth = [int][Math]::Round($wantedWidth * $scale) + $nonClientWidth
             $targetHeight = [int][Math]::Round(535 * $scale) + $nonClientHeight
             # SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE: resize this window only.
             if (-not [SpeedDiscSmoke]::SetWindowPos($handle, [IntPtr]::Zero, 0, 0, $targetWidth, $targetHeight, 0x16)) {
@@ -119,8 +120,8 @@ try {
             }
             $actualW = [int][Math]::Round(($client.Right - $client.Left) / $scale)
             $actualH = [int][Math]::Round(($client.Bottom - $client.Top) / $scale)
-            if ([Math]::Abs($actualW - 1040) -gt 5 -or [Math]::Abs($actualH - 535) -gt 5) {
-                throw "Expected about 1040x535 logical client units; got ${actualW}x${actualH}."
+            if ([Math]::Abs($actualW - $wantedWidth) -gt 5 -or [Math]::Abs($actualH - 535) -gt 5) {
+                throw "Expected about ${wantedWidth}x535 logical client units; got ${actualW}x${actualH}."
             }
             $clientOrigin = [SpeedDiscSmoke+POINT]::new()
             if (-not [SpeedDiscSmoke]::ClientToScreen($handle, [ref]$clientOrigin)) {
