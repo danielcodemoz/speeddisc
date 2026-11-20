@@ -1,0 +1,77 @@
+name: Publish SpeedDisc Windows GUI x64 preview 1
+on:
+  push:
+    branches: [codex/publish-speeddisc-windows-gui-preview-1]
+    paths: ['.github/workflows/publish-windows-gui-preview.yml']
+permissions:
+  contents: write
+concurrency:
+  group: speeddisc-windows-gui-preview-1
+  cancel-in-progress: false
+jobs:
+  windows-preview:
+    if: github.repository == 'danielcodemoz/speeddisc'
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      RELEASE_TAG: windows-gui-v0.1.0-preview.1
+      SOURCE_SHA: b2566aa69b36a5907cc7820dd9b87b87689ecb4a
+      GOTOOLCHAIN: local
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          ref: b2566aa69b36a5907cc7820dd9b87b87689ecb4a
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version: '1.24.4'
+          cache: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Verify source and run tests
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          if ((git rev-parse HEAD) -ne $env:SOURCE_SHA) { throw 'Unexpected release source.' }
+          go mod verify
+          go vet ./...
+          go test -count=1 ./...
+          go vet -tags speeddiscgui ./...
+          go test -tags speeddiscgui -count=1 ./...
+      - name: Test the exact portable executable
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $dir = Join-Path $env:RUNNER_TEMP 'speeddisc-release'
+          $exe = Join-Path $dir 'SpeedDisc-GUI.exe'
+          $evidence = Join-Path $env:RUNNER_TEMP 'speeddisc-release-proof'
+          python scripts/build-gui.py --output "$exe"
+          ./scripts/smoke-gui.ps1 -Executable "$exe" -EvidenceDirectory "$evidence/launch"
+          ./scripts/smoke-gui.ps1 -Executable "$exe" -EvidenceDirectory "$evidence/compact" -Demo
+          ./scripts/smoke-gui-export.ps1 -Executable "$exe" -EvidenceDirectory "$evidence/native-exports"
+          $hash = (Get-FileHash -Algorithm SHA256 "$exe").Hash.ToLowerInvariant()
+          "$hash  SpeedDisc-GUI.exe" | Set-Content -Encoding ascii (Join-Path $dir 'SHA256SUMS.txt')
+          $(Get-Content LICENSE -Raw; Get-Content (Join-Path (go env GOROOT) 'LICENSE') -Raw; Get-Content (Join-Path (go list -m -f '{{.Dir}}' golang.org/x/sys) 'LICENSE') -Raw; Get-Content internal/report/OFL-Outfit.txt -Raw) | Set-Content -Encoding utf8 (Join-Path $dir 'LICENSES.txt')
+          @'
+          Prévia portátil Windows x64 (Intel/AMD). Descarregue e abra o ficheiro .exe, sem instalador. A análise «Só ver» não altera o sistema; algumas ferramentas protegidas pedem administrador quando seleccionadas. Exporta TXT e PDF localmente. O executável desta prévia não tem assinatura digital. Não contorne as protecções do Windows ou da sua organização.
+
+          Preview for Windows x64 (Intel/AMD). Download and open the .exe; no installer. Look only does not change the system, while selected protected tools can request elevation. Local TXT/PDF export. This preview executable is unsigned. Do not bypass Windows or organisational protections.
+
+          Tested on hosted Windows Server with synthetic data. Not a stable release or a claim of full standard-user Windows 10/11 compatibility. The stable v0.4.0 console download remains available.
+          '@ | Set-Content -Encoding utf8 (Join-Path $dir 'NOTES.md')
+      - name: Publish approved preview without replacing stable
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = 'danielcodemoz/speeddisc'
+          $tag = $env:RELEASE_TAG
+          $existing = git ls-remote "https://github.com/$repo.git" "refs/tags/$tag"
+          if ($LASTEXITCODE -ne 0 -or $existing) { throw 'Cannot verify that the preview tag is new.' }
+          $dir = Join-Path $env:RUNNER_TEMP 'speeddisc-release'
+          gh release create "$tag" "$dir/SpeedDisc-GUI.exe" "$dir/SHA256SUMS.txt" "$dir/LICENSES.txt" --repo "$repo" --target "$env:SOURCE_SHA" --prerelease --latest=false --title 'SpeedDisc Windows GUI 0.1.0 — Preview 1 (x64)' --notes-file "$dir/NOTES.md"
+          if ($LASTEXITCODE -ne 0) { throw 'Preview publication failed.' }
