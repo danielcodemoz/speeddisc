@@ -1,4 +1,4 @@
-# SpeedDisc GUI | Oficina portátil
+# SpeedDisc GUI | Oficina portátil (prévia 0.1.0-preview.1)
 
 A Windows x64 workbench for the existing SpeedDisc tool catalogue. It uses
 Go and Windows controls, with no installer, web view, browser engine, internet
@@ -37,7 +37,7 @@ manifest and Per-Monitor V2 DPI declaration. It generates its own resources
 without changing the CLI. The Windows smoke workflow uses test fixtures, opens
 and closes the app without maintenance, and tries to capture the regular and
 fictional-report windows. Hosted Windows Server testing is not interactive
-Windows 10/11 acceptance. Before promoting a public binary, verify a real
+Windows 10/11 acceptance. Before promoting this preview to a stable release, verify a real
 standard-user session (with and without UAC), including 1366×768 at 125% scaling, keyboard navigation,
 and one read-only estimate plus TXT/PDF save in an isolated environment. Test
 changing operations only on disposable Windows fixtures.

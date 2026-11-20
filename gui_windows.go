@@ -1155,7 +1155,7 @@ func main() {
 		s.message(s.l("Não foi possível iniciar a interface.", "The interface could not be started."), "SpeedDisc", 0x10)
 		return
 	}
-	title := u16("SpeedDisc · " + s.l("Oficina portátil", "Portable workbench"))
+	title := u16("SpeedDisc · " + s.l("Oficina portátil (prévia)", "Portable workbench (preview)"))
 	area := monitorWorkArea(0)
 	screenW, screenH := uintptr(area.R-area.L), uintptr(area.B-area.T)
 	scale := uintptr(96)
