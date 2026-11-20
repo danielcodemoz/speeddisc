@@ -315,6 +315,7 @@ function createRow(item) {
   const dict = strings();
   const row = create('article','cmd-row');
   row.dataset.command = item.cmd;
+  row.dataset.category = item.cat;
 
   const categoryIcon = create('div','cmd-icon');
   categoryIcon.setAttribute('aria-hidden','true');
