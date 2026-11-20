@@ -39,15 +39,20 @@ for p,d in parsed.items():
 build=ast.parse((root/'_source/build.py').read_text(encoding='utf-8'))
 linux_asset=next(ast.literal_eval(n.value) for n in build.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='LINUX_RELEASE_URL' for t in n.targets))
 if linux_asset is not None:
- assert re.fullmatch(r'https://github\.com/danielcodemoz/speeddisc/releases/download/v[^/]+/[^/]+',linux_asset)
- assert not linux_asset.lower().endswith('.exe')
+ assert re.fullmatch(r'https://github\.com/danielcodemoz/speeddisc/releases/download/linux-v[^/]+/SpeedDisc-Linux-amd64\.tar\.gz',linux_asset)
 for p in [root/'index.html',root/'en/index.html']:
  for alias in ['fazer','pacotes','correr','smartscreen','limites','obter','kits','main']:
   assert alias in parsed[p].ids,alias
  assert parsed[p].platforms=={'windows':'https://github.com/danielcodemoz/speeddisc/releases/download/v0.4.0/SpeedDisc.exe','linux':linux_asset or '#linux-edition'}
  assert 'linux-edition' in parsed[p].ids
+ homepage=p.read_text(encoding='utf-8')
+ pt=parsed[p].lang=='pt-PT'
  if linux_asset is None:
-  assert ('Em teste' if parsed[p].lang=='pt-PT' else 'In testing') in p.read_text(encoding='utf-8')
+  assert ('Em teste' if pt else 'In testing') in homepage
+ else:
+  for disclosure in (('Versão de teste','Só x64','navegador local','não requer sudo') if pt else ('Preview','x64 only','local browser','does not require sudo')):
+   assert disclosure in homepage,disclosure
+  assert '.tar.gz' in homepage and ('64 bits' if pt else '64-bit') in homepage
 for filename, expected in json.loads((root/'_source/legacy-sha256.json').read_text(encoding="utf-8")).items():
  assert hashlib.sha256((root/filename).read_bytes()).hexdigest()==expected,filename
 commands=[json.loads(value) for value in re.findall(r'\bcmd:\s*("(?:\\.|[^"\\])*")',(root/'comandos.js').read_text(encoding="utf-8"))]
