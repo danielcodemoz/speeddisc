@@ -16,6 +16,9 @@ public static class SpeedDiscExportTest {
     [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr hwnd, uint command);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hwnd);
     [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern bool IsWindowEnabled(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern IntPtr GetParent(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern int GetDlgCtrlID(IntPtr hwnd);
     [DllImport("user32.dll")] public static extern IntPtr GetDlgItem(IntPtr hwnd, int id);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr hwnd, StringBuilder b, int capacity);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hwnd, StringBuilder b, int capacity);
@@ -50,18 +53,69 @@ public static class SpeedDiscExportTest {
         } finally { Marshal.FreeHGlobal(p); }
     }
 
+    private static string ClassOf(IntPtr hwnd) {
+        var cls = new StringBuilder(80);
+        GetClassName(hwnd, cls, cls.Capacity);
+        return cls.ToString();
+    }
+
+    private static bool IsEdit(IntPtr hwnd, string cls) {
+        return (cls.Equals("Edit", StringComparison.OrdinalIgnoreCase) ||
+                cls.StartsWith("RichEdit", StringComparison.OrdinalIgnoreCase)) &&
+               IsWindowVisible(hwnd) && IsWindowEnabled(hwnd);
+    }
+
+    private static bool InFilenameCombo(IntPtr hwnd, IntPtr dialog) {
+        for (IntPtr parent = GetParent(hwnd); parent != IntPtr.Zero && parent != dialog; parent = GetParent(parent)) {
+            if (GetDlgCtrlID(parent) == 1148 && ClassOf(parent).StartsWith("ComboBox", StringComparison.OrdinalIgnoreCase))
+                return true; // cmb13, the Explorer-style file name combo.
+        }
+        return false;
+    }
+
     public static IntPtr FilenameEdit(IntPtr dialog, string suffix) {
-        IntPtr found = IntPtr.Zero;
+        IntPtr known = IntPtr.Zero, preset = IntPtr.Zero, only = IntPtr.Zero;
+        int knownCount = 0, presetCount = 0, count = 0;
         EnumChildWindows(dialog, delegate(IntPtr hwnd, IntPtr ignored) {
-            var cls = new StringBuilder(64);
-            GetClassName(hwnd, cls, cls.Capacity);
-            if (!IsWindowVisible(hwnd) || !String.Equals(cls.ToString(), "Edit", StringComparison.OrdinalIgnoreCase)) return true;
-            string text = Text(hwnd);
-            if (!text.StartsWith("SpeedDisc-", StringComparison.Ordinal) || !text.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) return true;
-            found = hwnd;
-            return false;
+            string cls = ClassOf(hwnd);
+            if (!IsEdit(hwnd, cls)) return true;
+            count++;
+            only = hwnd;
+            if (GetDlgCtrlID(hwnd) == 1152 || InFilenameCombo(hwnd, dialog)) { // edt1 or cmb13 descendant
+                known = hwnd;
+                knownCount++;
+            }
+            string value = Text(hwnd);
+            if (value.StartsWith("SpeedDisc-", StringComparison.Ordinal) &&
+                (value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) ||
+                 System.Text.RegularExpressions.Regex.IsMatch(value, @"^SpeedDisc-[0-9]{8}-[0-9]{6}$"))) {
+                preset = hwnd;
+                presetCount++;
+            }
+            return true;
         }, IntPtr.Zero);
-        return found;
+        if (knownCount == 1) return known;
+        if (presetCount == 1) return preset;
+        return count == 1 ? only : IntPtr.Zero;
+    }
+
+    public static string DescribeDialog(IntPtr dialog) {
+        var result = new StringBuilder("Owned dialog child controls (minimal sanitized diagnostics):");
+        int count = 0;
+        EnumChildWindows(dialog, delegate(IntPtr hwnd, IntPtr ignored) {
+            if (++count > 90) return false;
+            string cls = ClassOf(hwnd);
+            result.AppendFormat("\nclass={0}, id={1}, parent-id={2}, visible={3}, enabled={4}",
+                cls, GetDlgCtrlID(hwnd), GetDlgCtrlID(GetParent(hwnd)), IsWindowVisible(hwnd), IsWindowEnabled(hwnd));
+            if (IsEdit(hwnd, cls)) {
+                string value = Text(hwnd);
+                // Print only the synthetic deterministic proposal, never path/search text.
+                bool expected = System.Text.RegularExpressions.Regex.IsMatch(value, @"^SpeedDisc-[0-9]{8}-[0-9]{6}(\.(txt|pdf))?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                result.AppendFormat(", value={0}", expected ? value : (value.Length == 0 ? "[empty]" : "[redacted length " + value.Length + "]"));
+            }
+            return true;
+        }, IntPtr.Zero);
+        return result.ToString();
     }
 
     public static bool SetText(IntPtr hwnd, string text) {
@@ -112,8 +166,17 @@ try {
         $buttonId = if ($format -eq 'txt') { [uint32]104 } else { [uint32]105 }
         if (-not [SpeedDiscExportTest]::PostButton($main, $buttonId)) { throw "Cannot invoke export $format." }
         $dialog = & $findDialog 'Guardar relatório SpeedDisc'
-        $edit = [SpeedDiscExportTest]::FilenameEdit($dialog, ".$format")
-        if ($edit -eq [IntPtr]::Zero) { throw "Cannot identify the preset $format filename field." }
+        $editWait = [Diagnostics.Stopwatch]::StartNew()
+        do {
+            $edit = [SpeedDiscExportTest]::FilenameEdit($dialog, ".$format")
+            if ($edit -ne [IntPtr]::Zero) { break }
+            Start-Sleep -Milliseconds 100
+        } while ($editWait.Elapsed.TotalSeconds -lt 6)
+        if ($edit -eq [IntPtr]::Zero) {
+            Write-Output ([SpeedDiscExportTest]::DescribeDialog($dialog))
+            throw "Cannot identify the owned $format filename field by standard control ID, synthetic prefill or the sole editable field."
+        }
+        Write-Output ([SpeedDiscExportTest]::DescribeDialog($dialog))
         $path = Join-Path $scratch "relatório sintético.$format"
         if (-not [SpeedDiscExportTest]::SetText($edit, $path) -or [SpeedDiscExportTest]::Text($edit) -cne $path) {
             throw "Could not set and read back synthetic $format path."
