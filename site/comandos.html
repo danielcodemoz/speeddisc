@@ -4,310 +4,113 @@
   <meta charset="utf-8">
   <meta name="google" content="notranslate">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Comandos CMD — SpeedDisc</title>
-  <meta name="description" content="Referência rápida de comandos Windows CMD para técnicos de informática. Copia para a área de transferência com um clique.">
+  <title>Comandos CMD | SpeedDisc</title>
+  <meta name="description" content="Biblioteca de comandos do Windows CMD. Procure, reveja o efeito e copie o comando para colar manualmente.">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <link rel="canonical" href="https://speeddisc.danielpro.dev/comandos.html">
-  <meta property="og:title" content="Comandos CMD — SpeedDisc">
+  <meta property="og:title" content="Comandos CMD | SpeedDisc">
   <meta property="og:description" content="Referência rápida de comandos Windows CMD para técnicos de informática.">
   <meta property="og:url" content="https://speeddisc.danielpro.dev/comandos.html">
   <meta property="og:type" content="website">
-  <meta name="theme-color" content="#f3f0e8">
+  <meta name="theme-color" content="#f5f6fa">
   <link rel="preload" href="/fonts/outfit.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/fraunces.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/fonts/fonts.css">
+  <link rel="stylesheet" href="/comandos.v2.css">
   <script>
     (function () {
-      var t = localStorage.getItem("sd-theme");
-      if (t !== "light" && t !== "dark") {
-        t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      }
-      document.documentElement.setAttribute("data-theme", t);
-      var meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute("content", t === "dark" ? "#121614" : "#f3f0e8");
+      var value;
+      try { value = localStorage.getItem("sd-theme"); } catch (_) {}
+      if (value !== "light" && value !== "dark") value = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      document.documentElement.dataset.theme = value;
     })();
   </script>
-  <link rel="stylesheet" href="/style.css?v=0.4.0d">
-  <style>
-    .cmd-search {
-      width: 100%;
-      max-width: 600px;
-      padding: 0.85rem 1.15rem;
-      font-size: 1.05rem;
-      border: 2px solid var(--line);
-      border-radius: 14px;
-      background: var(--card);
-      color: var(--ink);
-      margin: 1.2rem 0 1.2rem;
-      font-family: Outfit, sans-serif;
-      transition: all 0.2s;
-    }
-    .cmd-search:focus {
-      outline: 2px solid transparent;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--wash);
-    }
-    .filter-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-      margin: 1.5rem 0 1.8rem;
-    }
-    .filter-chip {
-      padding: 0.55rem 1.1rem;
-      border: 2px solid var(--line);
-      border-radius: 999px;
-      background: var(--card);
-      color: var(--ink);
-      font-size: 0.92rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: Outfit, sans-serif;
-    }
-    .filter-chip:hover {
-      border-color: var(--accent);
-      background: var(--wash);
-    }
-    .filter-chip.active {
-      background: var(--accent);
-      color: var(--on-accent);
-      border-color: var(--accent);
-    }
-    .cmd-grid {
-      display: grid;
-      gap: 1rem;
-      margin-top: 1.5rem;
-    }
-    .cmd-row {
-      background: var(--card);
-      border: 2px solid var(--line);
-      border-radius: 14px;
-      padding: 1.15rem 1.3rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      position: relative;
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 1rem;
-      align-items: start;
-    }
-    .cmd-count { color: var(--muted); font-size: 0.9rem; margin: 0.4rem 0 0; }
-    .cmd-row::after { content: ""; position: absolute; right: 1.1rem; top: 50%; width: 1.1rem; height: 1.1rem; margin-top: -0.55rem; opacity: 0; transition: opacity 0.2s; background: currentColor; color: var(--accent); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='14' height='14' x='8' y='8' rx='2'/%3E%3Cpath d='M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2'/%3E%3C/svg%3E") center/contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='14' height='14' x='8' y='8' rx='2'/%3E%3Cpath d='M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2'/%3E%3C/svg%3E") center/contain no-repeat; }
-    .cmd-row:hover::after, .cmd-row:focus-visible::after { opacity: 0.8; }
-    .cmd-row.copied::after { opacity: 0; }
-    .cmd-row.failed { border-color: #b3261e; }
-    .cmd-row.failed .copy-feedback { background: #b3261e; color: #fff; max-width: 70%; text-align: right; }
-    .no-results .btn { margin-top: 0.6rem; }
-    .cmd-row:focus-visible { border-color: var(--accent); outline-offset: 2px; }
-    .cmd-row:hover {
-      border-color: var(--accent);
-      transform: translateX(4px);
-      box-shadow: -4px 0 0 var(--accent), 0 4px 16px rgba(0,0,0,0.06);
-    }
-    .cmd-row.copied {
-      border-color: var(--accent);
-      background: var(--wash);
-    }
-    .cmd-icon {
-      width: 2.8rem;
-      height: 2.8rem;
-      border-radius: 10px;
-      background: var(--wash);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .cmd-icon svg {
-      width: 1.4rem;
-      height: 1.4rem;
-      color: var(--accent);
-    }
-    .cmd-content {
-      min-width: 0;
-    }
-    .cmd-header {
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-      margin-bottom: 0.5rem;
-      flex-wrap: wrap;
-    }
-    .cmd-name {
-      font-family: 'Courier New', Consolas, monospace;
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: var(--accent);
-      margin: 0;
-      letter-spacing: -0.01em;
-    }
-    .cmd-badge {
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      background: var(--soft);
-      color: var(--muted);
-    }
-    .cmd-desc {
-      font-size: 0.95rem;
-      color: var(--muted);
-      margin: 0;
-      line-height: 1.5;
-    }
-    .copy-feedback {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: var(--accent);
-      color: var(--on-accent);
-      padding: 0.35rem 0.75rem;
-      border-radius: 8px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-    .cmd-row.copied .copy-feedback {
-      opacity: 1;
-    }
-    .no-results {
-      text-align: center;
-      padding: 4rem 1rem;
-      color: var(--muted);
-    }
-    .no-results svg {
-      width: 3rem;
-      height: 3rem;
-      opacity: 0.3;
-      margin-bottom: 1rem;
-    }
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--accent);
-      text-decoration: none;
-      margin-bottom: 1.2rem;
-      font-weight: 500;
-      transition: gap 0.2s;
-    }
-    .back-link:hover {
-      gap: 0.7rem;
-    }
-    .back-link svg {
-      width: 1.2rem;
-      height: 1.2rem;
-    }
-    .filter-label {
-      font-size: 0.88rem;
-      color: var(--muted);
-      margin-bottom: 0.6rem;
-      font-weight: 500;
-    }
-    @media (max-width: 720px) {
-      .cmd-row {
-        grid-template-columns: 1fr;
-        gap: 0.8rem;
-      }
-      .cmd-icon {
-        width: 2.4rem;
-        height: 2.4rem;
-      }
-      .cmd-icon svg {
-        width: 1.2rem;
-        height: 1.2rem;
-      }
-      .filter-chips {
-        gap: 0.5rem;
-      }
-      .filter-chip {
-        font-size: 0.85rem;
-        padding: 0.5rem 0.9rem;
-      }
-    }
-  </style>
 </head>
 <body>
-  <a class="skip-link" href="#main" data-i18n="skip">Saltar para o conteúdo</a>
-  <header>
-    <div class="wrap bar">
-      <a class="brand" href="/"><img src="/favicon.ico" width="32" height="32" alt=""><span class="word">SpeedDisc</span></a>
-      <nav id="site-nav">
-        <a href="/" data-i18n="nav_home">Início</a>
-        <a href="/comandos.html" data-i18n="nav_commands">Comandos CMD</a>
+  <a class="cmd-skip" href="#main" data-cmd-text="skip">Saltar para o conteúdo</a>
+  <header class="cmd-top">
+    <div class="cmd-shell cmd-top-inner">
+      <a class="cmd-brand" href="/" data-cmd-home><img src="/favicon.ico" width="30" height="30" alt=""><span>SpeedDisc<span>.</span></span></a>
+      <nav class="cmd-nav" aria-label="Navegação principal" data-cmd-label="navigation">
+        <a href="/#guias" data-cmd-guides data-cmd-text="guides">Guias</a>
+        <a href="/comandos.html" aria-current="page" data-cmd-text="navCurrent">Comandos CMD</a>
       </nav>
-      <div class="tools">
-        <div class="seg" role="group" aria-label="Idioma">
-          <button type="button" id="btn-pt" lang="pt-PT" data-set-lang="pt" aria-pressed="true">PT</button>
-          <button type="button" id="btn-en" lang="en" data-set-lang="en" aria-pressed="false">EN</button>
+      <div class="cmd-toolbar">
+        <div class="cmd-language" role="group" aria-label="Idioma" data-cmd-label="language">
+          <button type="button" data-set-lang="pt" lang="pt-PT" aria-pressed="true">PT</button>
+          <button type="button" data-set-lang="en" lang="en" aria-pressed="false">EN</button>
         </div>
-        <span data-apoiar="nav" style="margin-right:8px"></span>
-        <button class="iconbtn" id="theme" type="button" aria-label="Tema">
-          <i data-lucide="moon"></i>
-        </button>
-        <button class="iconbtn navtoggle" id="navtoggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu">
-          <i data-lucide="menu"></i>
-        </button>
+        <button id="theme" class="cmd-theme" type="button" aria-label="Alternar tema" aria-pressed="false" data-cmd-label="theme"><i data-lucide="moon"></i></button>
       </div>
     </div>
   </header>
-
-  <main id="main" style="padding-top: 2rem;">
-    <div class="wrap">
-      <a href="/" class="back-link">
-        <i data-lucide="arrow-left"></i>
-        <span data-i18n="back_home">Voltar ao início</span>
-      </a>
-      
-      <h1 data-i18n="cmd_title">Comandos CMD para Técnicos</h1>
-      <p class="sub" data-i18n="cmd_lead">Referência rápida de comandos Windows. Clique num comando para copiar para a área de transferência.</p>
-      
-      <label class="sr-only" for="search" data-i18n="cmd_search_label">Procurar comandos</label>
-      <input 
-        type="search" 
-        autocomplete="off" 
-        class="cmd-search" 
-        id="search" 
-        placeholder="Procurar comandos..."
-        data-i18n-placeholder="cmd_search_placeholder"
-      >
-      
-      <div class="filter-label" id="filter-label" data-i18n="cmd_filter_label">Filtrar por categoria:</div>
-      <div class="filter-chips" id="filter-chips" role="group" aria-labelledby="filter-label"></div>
-      
-      <p class="cmd-count" id="cmd-count" aria-live="polite"></p>
-      <div class="cmd-grid" id="cmd-grid"></div>
-      <div class="no-results" id="no-results" role="status" style="display: none;">
-        <i data-lucide="search-x"></i>
-        <p data-i18n="cmd_no_results">Nenhum comando encontrado.</p>
-        <button class="btn ghost small" type="button" id="clear-search" data-i18n="cmd_clear">Limpar pesquisa e filtros</button>
+  <main id="main" class="cmd-shell">
+    <section class="cmd-hero">
+      <div class="cmd-intro">
+        <p class="cmd-eyebrow"><span aria-hidden="true"></span><span data-cmd-text="eyebrow">BIBLIOTECA TÉCNICA · WINDOWS</span></p>
+        <h1><span data-cmd-text="titleA">Comandos</span> <em data-cmd-text="titleB">CMD.</em></h1>
+        <p class="cmd-lead" data-cmd-text="lead">Encontre o comando certo, reveja o efeito e copie-o para colar manualmente na Linha de Comandos.</p>
+        <a class="cmd-back" href="/#guias" data-cmd-guides><i data-lucide="arrow-left"></i><span data-cmd-text="back">Voltar aos guias</span></a>
       </div>
-    </div>
+      <aside class="cmd-manual" aria-labelledby="cmd-manual-title">
+        <div class="cmd-manual-icon"><i data-lucide="terminal"></i></div>
+        <h2 id="cmd-manual-title" data-cmd-text="manualTitle">Da página ao Windows</h2>
+        <ol>
+          <li data-cmd-text="step1">Reveja o efeito e copie o comando.</li>
+          <li data-cmd-text="step2">Abra a Linha de Comandos no menu Iniciar.</li>
+          <li data-cmd-text="step3">Cole, reveja os parâmetros e execute manualmente.</li>
+        </ol>
+        <p data-cmd-text="never">Esta página não abre a consola nem executa comandos.</p>
+      </aside>
+    </section>
+
+    <section class="cmd-library" aria-labelledby="cmd-catalog-title">
+      <div class="cmd-section-header">
+        <h2 id="cmd-catalog-title" data-cmd-text="catalogTitle">Encontre um comando</h2>
+        <button id="cmd-favorites" type="button" class="cmd-filter-toggle" aria-pressed="false"><i data-lucide="star"></i><span data-cmd-text="favorites">Só favoritos</span></button>
+      </div>
+      <label class="cmd-sr" for="search" data-cmd-text="searchLabel">Procurar comandos</label>
+      <div class="cmd-search-shell"><i data-lucide="search"></i><input type="search" autocomplete="off" id="search" placeholder="Experimente: disco, DNS ou ipconfig"></div>
+      <div class="cmd-filter-label" id="filter-label" data-cmd-text="filterLabel">Categorias</div>
+      <div class="cmd-filters" id="filter-chips" role="group" aria-labelledby="filter-label"></div>
+      <div class="cmd-result-line">
+        <p class="cmd-count" id="cmd-count" role="status"></p>
+        <p class="cmd-context-hint" data-cmd-text="rightHint">Também pode abrir o menu com o botão direito.</p>
+      </div>
+      <div class="cmd-grid" id="cmd-grid"></div>
+      <div class="cmd-no-results" id="no-results" hidden>
+        <p id="cmd-empty-text">Nenhum comando encontrado.</p>
+        <button type="button" id="clear-search" class="cmd-action" data-cmd-text="reset">Limpar pesquisa e filtros</button>
+      </div>
+      <noscript><p>Active o JavaScript para consultar a biblioteca interactiva / Enable JavaScript to browse the interactive library.</p></noscript>
+    </section>
   </main>
 
-  <div class="wrap">
-    <footer style="margin-top: 3rem;">
-      <span data-i18n="foot">Daniel Marcos · MIT · 2026</span>
-      <span>
-        <a href="https://github.com/danielcodemoz/speeddisc">GitHub</a>
-        ·
-        <a href="https://speeddisc.danielpro.dev/">speeddisc.danielpro.dev</a>
-      </span>
-      <div data-apoiar="link" style="margin-top:12px"></div>
-    </footer>
-  </div>
+  <footer class="cmd-shell cmd-footer">
+    <p>Daniel Marcos · MIT · 2026</p>
+    <div><a href="https://github.com/danielcodemoz/speeddisc">GitHub</a> · <a href="https://danielpro.dev/">danielpro.dev</a></div>
+    <div data-apoiar="link"></div>
+  </footer>
 
-  <button class="iconbtn to-top" id="to-top" type="button" aria-label="Topo" data-i18n-label="to_top"><i data-lucide="arrow-up"></i></button>
+  <div id="cmd-menu" class="cmd-menu" role="menu" aria-label="Opções do comando" hidden>
+    <button type="button" role="menuitem" data-menu-action="review" tabindex="-1"><i data-lucide="terminal"></i><span></span></button>
+    <button type="button" role="menuitem" data-menu-action="copy" tabindex="-1"><i data-lucide="copy"></i><span></span></button>
+    <button type="button" role="menuitem" data-menu-action="favorite" tabindex="-1"><i data-lucide="star"></i><span></span></button>
+  </div>
+  <dialog id="cmd-dialog" class="cmd-dialog" aria-labelledby="cmd-dialog-title" aria-describedby="cmd-dialog-description cmd-dialog-warning">
+    <div class="cmd-dialog-header"><h2 id="cmd-dialog-title" data-cmd-text="review">Rever para usar no CMD</h2><button type="button" id="cmd-close" class="cmd-action" data-cmd-text="close">Fechar</button></div>
+    <p id="cmd-dialog-description"></p>
+    <label class="cmd-sr" for="cmd-preview" data-cmd-text="exactCommand">Comando exacto</label>
+    <textarea id="cmd-preview" rows="2" readonly spellcheck="false"></textarea>
+    <p id="cmd-dialog-warning" class="cmd-dialog-note"></p>
+    <p class="cmd-paste-note" data-cmd-text="pasteNote">Abra a Linha de Comandos no Windows; cole, reveja os parâmetros e só depois prima Enter.</p>
+    <button type="button" id="cmd-dialog-copy" class="cmd-action cmd-primary"><i data-lucide="copy"></i><span data-cmd-text="copy">Copiar</span></button>
+    <p id="cmd-dialog-status" class="cmd-status" role="status"></p>
+  </dialog>
+  <p id="cmd-status" class="cmd-toast" role="status" aria-atomic="true"></p>
 
   <script src="/js/icons.js?v=0.4.0d"></script>
-  <script src="/app.js?v=0.4.0d"></script>
-  <script src="/comandos.js?v=0.4.0d"></script>
-<script src="/js/apoiar.js?v=2.6.rollout" data-variant="free" data-accent="#0e6b62" data-theme="auto" defer></script>
+  <script src="/comandos.js?v=2.0"></script>
+  <script src="/js/apoiar.js?v=2.6.rollout" data-variant="free" data-accent="#4144a3" data-theme="auto" defer></script>
 </body>
 </html>

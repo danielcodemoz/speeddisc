@@ -1,8 +1,8 @@
 {
-  "pages_checked": 12,
+  "pages_checked": 13,
   "broken_links_or_assets": [],
   "legacy_files_unchanged": true,
   "legacy_anchor_aliases_present": true,
   "release_assets_verified": 6,
-  "browser_layout_tests": "BLOCKED: Chromium socket Operation not permitted; cloud browser cannot reach local server. No screenshot or visual/mobile pass claimed."
+  "original_cmd_templates_preserved": 68
 }
