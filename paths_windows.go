@@ -5,6 +5,8 @@ package main
 import (
 	"os"
 	"path/filepath"
+
+	"golang.org/x/sys/windows"
 )
 
 func windowsRoot() string {
@@ -88,12 +90,14 @@ func programDataOrDefault() string {
 	return `C:\ProgramData`
 }
 
+// Helper programs are always resolved relative to the OS-reported system
+// directory. A missing helper must not fall back to PATH or the working directory.
 func sysExe(rel string) string {
-	p := filepath.Join(windowsRoot(), "System32", filepath.FromSlash(rel))
-	if st, err := os.Stat(p); err == nil && !st.IsDir() {
-		return p
+	dir, err := windows.GetSystemDirectory()
+	if err != nil || !filepath.IsAbs(dir) {
+		return ""
 	}
-	return filepath.Base(filepath.FromSlash(rel))
+	return filepath.Join(dir, filepath.FromSlash(rel))
 }
 
 func browserCachePaths() []string {
@@ -110,4 +114,34 @@ func browserCachePaths() []string {
 		filepath.Join(la, "Mozilla", "Firefox", "Profiles"),
 	)
 	return paths
+}
+
+// Refuse reparse points along an existing path. In a startup destination,
+// the final directory may be missing, but its parents must exist.
+func unsafePathHasReparse(path string, allowMissingLeaf bool) bool {
+	current := filepath.Clean(path)
+	volume := filepath.VolumeName(current)
+	if len(volume) != 2 || volume[1] != ':' || !filepath.IsAbs(current) {
+		return true
+	}
+	leaf := true
+	for {
+		p, err := windows.UTF16PtrFromString(current)
+		if err != nil {
+			return true
+		}
+		attrs, err := windows.GetFileAttributes(p)
+		if err != nil {
+			if !(leaf && allowMissingLeaf && err == windows.ERROR_FILE_NOT_FOUND) {
+				return true
+			}
+		} else if attrs&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 || (allowMissingLeaf && leaf && attrs&windows.FILE_ATTRIBUTE_DIRECTORY == 0) {
+			return true
+		}
+		up := filepath.Dir(current)
+		if up == current {
+			return false
+		}
+		current, leaf = up, false
+	}
 }

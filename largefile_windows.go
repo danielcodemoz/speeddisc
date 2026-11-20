@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -61,7 +62,7 @@ func cleanBrowserCaches(paths []string, tick func(int)) []Stats {
 			out = append(out, Stats{Missing: true})
 			continue
 		}
-		if filepath.Base(filepath.Dir(p)) == "Profiles" {
+		if strings.HasSuffix(normPath(p), "/mozilla/firefox/profiles") {
 			st := cleanFirefoxProfiles(p, func(n int) {
 				if tick != nil {
 					tick(base + n)
@@ -71,7 +72,7 @@ func cleanBrowserCaches(paths []string, tick func(int)) []Stats {
 			out = append(out, st)
 			continue
 		}
-		st := CleanNotify(CleanTemp, p, func(n int) {
+		st := cleanBrowserLeaf(p, func(n int) {
 			if tick != nil {
 				tick(base + n)
 			}
@@ -83,6 +84,9 @@ func cleanBrowserCaches(paths []string, tick func(int)) []Stats {
 }
 
 func cleanFirefoxProfiles(profilesDir string, tick func(int)) Stats {
+	if !strings.HasSuffix(normPath(profilesDir), "/mozilla/firefox/profiles") {
+		return Stats{Err: ErrNotAllowed}
+	}
 	fi, err := os.Lstat(profilesDir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -90,7 +94,7 @@ func cleanFirefoxProfiles(profilesDir string, tick func(int)) Stats {
 		}
 		return Stats{Err: err}
 	}
-	if fi.Mode()&os.ModeSymlink != 0 {
+	if fi.Mode()&os.ModeSymlink != 0 || unsafePathHasReparse(profilesDir, false) {
 		return Stats{Err: ErrSymlink}
 	}
 	if !fi.IsDir() {
@@ -105,11 +109,11 @@ func cleanFirefoxProfiles(profilesDir string, tick func(int)) Stats {
 	var combined Stats
 	base := 0
 	for _, e := range entries {
-		if !e.IsDir() {
+		if !e.IsDir() || e.Type()&os.ModeSymlink != 0 {
 			continue
 		}
 		cachePath := filepath.Join(profilesDir, e.Name(), "cache2")
-		st := CleanNotify(CleanTemp, cachePath, func(n int) {
+		st := cleanBrowserLeaf(cachePath, func(n int) {
 			if tick != nil {
 				tick(base + n)
 			}
@@ -123,4 +127,20 @@ func cleanFirefoxProfiles(profilesDir string, tick func(int)) Stats {
 		}
 	}
 	return combined
+}
+
+func cleanBrowserLeaf(path string, tick func(int)) Stats {
+	if err := AllowClean(CleanBrowserCache, path); err != nil {
+		return Stats{Err: err}
+	}
+	if _, err := os.Lstat(path); err != nil {
+		if os.IsNotExist(err) {
+			return Stats{Missing: true}
+		}
+		return Stats{Err: err}
+	}
+	if unsafePathHasReparse(path, false) {
+		return Stats{Err: ErrSymlink}
+	}
+	return CleanNotify(CleanBrowserCache, path, tick)
 }

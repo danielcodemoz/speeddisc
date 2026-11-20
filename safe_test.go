@@ -76,3 +76,26 @@ func TestErrDetailLanguage(t *testing.T) {
 		t.Fatal("exit")
 	}
 }
+
+func TestOnlyExactBrowserCacheLeaves(t *testing.T) {
+	for _, path := range []string{
+		`C:\Users\Ana\AppData\Local\Google\Chrome\User Data\Default\Cache`,
+		`C:\Users\Ana\AppData\Local\Microsoft\Edge\User Data\Default\Code Cache`,
+		`C:\Users\Ana\AppData\Local\Mozilla\Firefox\Profiles\abc.default\cache2`,
+	} {
+		if err := AllowClean(CleanBrowserCache, path); err != nil {
+			t.Fatalf("approved cache leaf %q: %v", path, err)
+		}
+	}
+	for _, path := range []string{
+		`C:\Users\Ana\AppData\Local\Google\Chrome\User Data\Default`,
+		`C:\Users\Ana\AppData\Local\Google\Chrome\User Data\Default\History`,
+		`C:\Users\Ana\AppData\Local\Mozilla\Firefox\Profiles\abc.default\cookies.sqlite`,
+		`C:\Windows\System32\Google\Chrome\User Data\Default\Cache`,
+		`C:\Google\Chrome\User Data\Default\Cache`,
+	} {
+		if err := AllowClean(CleanBrowserCache, path); err == nil {
+			t.Fatalf("dangerous or unrelated path accepted: %q", path)
+		}
+	}
+}

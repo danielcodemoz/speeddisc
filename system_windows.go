@@ -5,9 +5,8 @@ package main
 import (
 	"errors"
 	"io"
-	"os"
 	"os/exec"
-
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -39,12 +38,12 @@ func runCapture(name string, args ...string) (string, error) {
 	return string(out), err
 }
 
-func runScan(out io.Writer, label string, max int, paint func(string) string, working string, utf8 bool, name string, args ...string) (int, string, *scanLine) {
+func runScan(out io.Writer, label string, max int, paint func(string) string, working string, utf8 bool, actualPercent func(int), name string, args ...string) (int, string, *scanLine) {
 	// The live row is drawn by setPercent. The filter must not also call show(),
 	// or the spinner and the plain percent fight over the same row.
 	live := startLive(out, label, working, "", max, paint, utf8)
 	filt := newPercentFilter(nil)
-	filt.onPercent = live.setPercent
+	filt.onPercent = scanPercentSink(live.setPercent, actualPercent)
 	code, err := runToolOutput(name, args, filt)
 	filt.flush()
 	live.stop()
@@ -56,6 +55,16 @@ func runScan(out io.Writer, label string, max int, paint func(string) string, wo
 		code = -1
 	}
 	return code, tail, live.line
+}
+
+// Tee only validated numeric updates from the existing helper-output parser.
+func scanPercentSink(console, notify func(int)) func(int) {
+	return func(n int) {
+		console(n)
+		if notify != nil {
+			notify(n)
+		}
+	}
 }
 
 var guidRe = regexp.MustCompile(`(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
@@ -112,9 +121,8 @@ func createRestorePoint() error {
 	out, err := runCapture(ps,
 		"-NoProfile",
 		"-NonInteractive",
-		"-ExecutionPolicy", "Bypass",
 		"-Command",
-		"Checkpoint-Computer -Description 'SpeedDisc' -RestorePointType 'MODIFY_SETTINGS'",
+		"Checkpoint-Computer -Description 'SpeedDisc' -RestorePointType 'MODIFY_SETTINGS' -ErrorAction Stop",
 	)
 	if err != nil {
 		detail := clip(strings.TrimSpace(out), 220)
@@ -126,16 +134,16 @@ func createRestorePoint() error {
 	return nil
 }
 
-func runSFC(out io.Writer, max int, paint func(string) string, working string, utf8 bool) (int, string, *scanLine) {
-	return runScan(out, "SFC", max, paint, working, utf8, sysExe("sfc.exe"), "/scannow")
+func runSFC(out io.Writer, max int, paint func(string) string, working string, utf8 bool, actualPercent func(int)) (int, string, *scanLine) {
+	return runScan(out, "SFC", max, paint, working, utf8, actualPercent, sysExe("sfc.exe"), "/scannow")
 }
 
-func runDISM(out io.Writer, max int, paint func(string) string, working string, utf8 bool) (int, string, *scanLine) {
-	return runScan(out, "DISM", max, paint, working, utf8, sysExe("dism.exe"), "/Online", "/Cleanup-Image", "/RestoreHealth")
+func runDISM(out io.Writer, max int, paint func(string) string, working string, utf8 bool, actualPercent func(int)) (int, string, *scanLine) {
+	return runScan(out, "DISM", max, paint, working, utf8, actualPercent, sysExe("dism.exe"), "/Online", "/Cleanup-Image", "/RestoreHealth")
 }
 
-func runComponentCleanup(out io.Writer, max int, paint func(string) string, working string, utf8 bool) (int, string, *scanLine) {
-	return runScan(out, "DISM", max, paint, working, utf8, sysExe("dism.exe"), "/Online", "/Cleanup-Image", "/StartComponentCleanup")
+func runComponentCleanup(out io.Writer, max int, paint func(string) string, working string, utf8 bool, actualPercent func(int)) (int, string, *scanLine) {
+	return runScan(out, "DISM", max, paint, working, utf8, actualPercent, sysExe("dism.exe"), "/Online", "/Cleanup-Image", "/StartComponentCleanup")
 }
 
 func getSystemDriveFree() (uint64, error) {
@@ -146,17 +154,13 @@ func getSystemDriveFree() (uint64, error) {
 	if len(disks) == 0 {
 		return 0, ErrNoDisk
 	}
-	systemRoot := os.Getenv("SystemRoot")
-	if systemRoot == "" {
-		systemRoot = `C:\`
-	}
-	systemDrive := strings.ToUpper(systemRoot[:2])
+	systemDrive := strings.ToUpper(filepath.VolumeName(systemDriveRoot()))
 	for _, d := range disks {
-		if strings.ToUpper(d.Letter) == systemDrive[:2] {
+		if strings.ToUpper(d.Letter) == systemDrive {
 			return d.Free, nil
 		}
 	}
-	return disks[0].Free, nil
+	return 0, ErrNoDisk
 }
 
 func flushDNS() error {
@@ -181,4 +185,15 @@ func resetWinsock() error {
 		return errors.New(detail)
 	}
 	return nil
+}
+
+// systemDriveRoot derives the drive from the Windows directory without indexing
+// short/invalid environment strings. A UNC path is not a local system drive.
+func systemDriveRoot() string {
+	volume := filepath.VolumeName(windowsRoot())
+	if len(volume) == 2 && volume[1] == ':' &&
+		((volume[0] >= 'A' && volume[0] <= 'Z') || (volume[0] >= 'a' && volume[0] <= 'z')) {
+		return volume + `\`
+	}
+	return `C:\`
 }

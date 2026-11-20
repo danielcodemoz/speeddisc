@@ -58,6 +58,7 @@ const (
 	CleanDO
 	CleanWER
 	CleanThumb
+	CleanBrowserCache
 )
 
 // normPath lowercases and resolves "." and ".." without using the host
@@ -205,6 +206,10 @@ func AllowClean(kind CleanKind, path string) error {
 		if !strings.HasSuffix(n, "/microsoft/windows/explorer") {
 			return ErrNotAllowed
 		}
+	case CleanBrowserCache:
+		if !isBrowserCachePath(n) {
+			return ErrNotAllowed
+		}
 	default:
 		return ErrNotAllowed
 	}
@@ -214,4 +219,24 @@ func AllowClean(kind CleanKind, path string) error {
 func IsStartupDir(path string) bool {
 	n := normPath(path)
 	return strings.HasSuffix(n, "/microsoft/windows/start menu/programs/startup")
+}
+
+// isBrowserCachePath matches only exact profile cache leaf folders, not browser
+// profiles or their history, settings, cookies or credentials.
+func isBrowserCachePath(n string) bool {
+	for _, base := range []string{"/google/chrome/user data/default", "/microsoft/edge/user data/default"} {
+		for _, leaf := range []string{"/cache", "/code cache"} {
+			// Require a non-root caller-supplied profile root before the browser path.
+			if i := len(n) - len(base+leaf); i > 3 && strings.HasSuffix(n, base+leaf) {
+				return true
+			}
+		}
+	}
+	const firefox = "/mozilla/firefox/profiles/"
+	prefix, tail, ok := strings.Cut(n, firefox)
+	if !ok || len(prefix) <= 3 {
+		return false
+	}
+	profile, cache, ok := strings.Cut(tail, "/")
+	return ok && profile != "" && cache == "cache2"
 }

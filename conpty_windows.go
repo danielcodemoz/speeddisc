@@ -3,6 +3,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -23,6 +24,9 @@ import (
 // is a real console from the child's point of view, and it is not the window
 // SpeedDisc is using, so the child cannot resize this buffer or this font.
 func runToolOutput(name string, args []string, out io.Writer) (int, error) {
+	if name == "" {
+		return -1, errors.New("Windows system executable is unavailable")
+	}
 	code, started, err := runPseudoConsole(name, args, out)
 	if started {
 		return code, err

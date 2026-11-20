@@ -1,0 +1,44 @@
+{
+  "RT_GROUP_ICON": {
+    "APP": {
+      "0000": "speeddisc.ico"
+    }
+  },
+  "RT_MANIFEST": {
+    "#1": {
+      "0409": "speeddisc-gui.manifest"
+    }
+  },
+  "RT_VERSION": {
+    "#1": {
+      "0000": {
+        "fixed": {
+          "file_version": "0.1.0.1",
+          "product_version": "0.1.0.1"
+        },
+        "info": {
+          "0409": {
+            "CompanyName": "Daniel Marcos",
+            "FileDescription": "SpeedDisc GUI Preview for Windows",
+            "FileVersion": "0.1.0.1",
+            "InternalName": "SpeedDisc.GUI",
+            "LegalCopyright": "Copyright (c) 2026 Daniel Marcos",
+            "OriginalFilename": "SpeedDisc-GUI.exe",
+            "ProductName": "SpeedDisc",
+            "ProductVersion": "0.1.0-preview.1"
+          },
+          "0816": {
+            "CompanyName": "Daniel Marcos",
+            "FileDescription": "SpeedDisc GUI, prévia portátil para Windows",
+            "FileVersion": "0.1.0.1",
+            "InternalName": "SpeedDisc.GUI",
+            "LegalCopyright": "Copyright (c) 2026 Daniel Marcos",
+            "OriginalFilename": "SpeedDisc-GUI.exe",
+            "ProductName": "SpeedDisc",
+            "ProductVersion": "0.1.0-preview.1"
+          }
+        }
+      }
+    }
+  }
+}

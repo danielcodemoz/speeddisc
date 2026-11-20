@@ -5,7 +5,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 )
@@ -129,13 +128,29 @@ func cleansNotify(kind CleanKind, paths []string, tick func(int)) []Stats {
 	return out
 }
 
+type runHooks struct {
+	noAutoWrite      bool
+	selectedInfoOnly bool
+	startup          func(Lang, *UI, *Report)
+	winsock          func() bool
+	progress         func(step, total int, label string, percent int)
+}
+
 func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
-	fresh := rep.markSnap()
-	if fresh {
-		collectInfo(rep)
-	}
-	if fresh || Contains(acts, ActInfo) {
-		ui.section(lang, "rep_found", rep.FoundCopy())
+	executeWithHooks(lang, acts, ui, rep, runHooks{})
+}
+
+func executeWithHooks(lang Lang, acts []Action, ui *UI, rep *Report, hooks runHooks) {
+	// The CLI keeps its original automatic initial snapshot; GUI snapshots
+	// are explicit actions and therefore run after their progress notification.
+	if !hooks.selectedInfoOnly {
+		fresh := rep.markSnap()
+		if fresh {
+			collectInfo(rep)
+		}
+		if fresh || Contains(acts, ActInfo) {
+			ui.section(lang, "rep_found", rep.FoundCopy())
+		}
 	}
 
 	var diskBefore, diskAfter uint64
@@ -143,9 +158,19 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 		diskBefore, _ = getSystemDriveFree()
 	}
 
-	for _, a := range acts {
+	for i, a := range acts {
+		var actualPercent func(int)
+		if hooks.progress != nil {
+			step, total := i+1, len(acts)
+			label := actionProgressLabel(lang, a)
+			hooks.progress(step, total, label, -1)
+			actualPercent = func(n int) { hooks.progress(step, total, label, n) }
+		}
 		switch a {
 		case ActInfo:
+			if hooks.selectedInfoOnly && rep.markSnap() {
+				collectInfo(rep)
+			}
 		case ActRestore:
 			{
 				ui.step(T(lang, "running", T(lang, "name_restore")))
@@ -197,29 +222,35 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 		case ActSFC:
 			ui.step(T(lang, "running", T(lang, "name_sfc")))
 			ui.warn(T(lang, "long_running"))
-			code, tail, line := runSFC(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8)
+			code, tail, line := runSFC(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8, actualPercent)
 			recordCommand(rep, ui, lang, tr("name_sfc"), code, tail, false, line, T(lang, "done_sfc_line"))
 		case ActDISM:
 			ui.step(T(lang, "running", T(lang, "name_dism")))
 			ui.warn(T(lang, "long_running"))
-			code, tail, line := runDISM(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8)
+			code, tail, line := runDISM(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8, actualPercent)
 			recordCommand(rep, ui, lang, tr("name_dism"), code, tail, true, line, T(lang, "done_dism_line"))
 		case ActStartup:
-			runStartupUI(lang, ui, rep)
+			if hooks.startup != nil {
+				hooks.startup(lang, ui, rep)
+			} else {
+				runStartupUI(lang, ui, rep)
+			}
 		case ActComponentCleanup:
 			ui.step(T(lang, "running", T(lang, "name_component_cleanup")))
 			ui.warn(T(lang, "long_running"))
-			code, tail, line := runComponentCleanup(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8)
+			code, tail, line := runComponentCleanup(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8, actualPercent)
 			recordCommand(rep, ui, lang, tr("name_component_cleanup"), code, tail, false, line, T(lang, "done_dism_line"))
 		case ActTopFiles:
 			runTopFilesUI(lang, ui, rep)
 		case ActBrowserCache:
 			runBrowserCacheUI(lang, ui, rep)
 		case ActFlushDNS:
-			runFlushDNSUI(lang, ui, rep)
+			runFlushDNSUI(lang, ui, rep, hooks.winsock)
 		}
-		rep.setLang(lang)
-		_, _ = rep.Write()
+		if !hooks.noAutoWrite {
+			rep.setLang(lang)
+			_, _ = rep.Write()
+		}
 	}
 
 	if Mutates(acts) {
@@ -236,14 +267,48 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 	}
 }
 
+// Use only bounded, localized catalog labels. Do not stream helper output
+// or local paths to the UI's progress event queue.
+func actionProgressLabel(lang Lang, action Action) string {
+	switch action {
+	case ActInfo:
+		return T(lang, "opt_info")
+	case ActRestore:
+		return T(lang, "name_restore")
+	case ActTemp:
+		return T(lang, "name_temp")
+	case ActWU:
+		return T(lang, "name_wu")
+	case ActThumb:
+		return T(lang, "name_thumb")
+	case ActDO:
+		return T(lang, "name_do")
+	case ActWER:
+		return T(lang, "name_wer")
+	case ActPower:
+		return T(lang, "name_power")
+	case ActSFC:
+		return T(lang, "name_sfc")
+	case ActDISM:
+		return T(lang, "name_dism")
+	case ActStartup:
+		return T(lang, "name_startup")
+	case ActComponentCleanup:
+		return T(lang, "name_component_cleanup")
+	case ActTopFiles:
+		return T(lang, "name_top_files")
+	case ActBrowserCache:
+		return T(lang, "name_browser_cache")
+	case ActFlushDNS:
+		return T(lang, "opt_flush_dns")
+	default:
+		return T(lang, "working")
+	}
+}
+
 func runTopFilesUI(lang Lang, ui *UI, rep *Report) {
 	ui.step(T(lang, "running", T(lang, "name_top_files")))
-	systemRoot := os.Getenv("SystemRoot")
-	if systemRoot == "" {
-		systemRoot = `C:\`
-	} else {
-		systemRoot = systemRoot[:3]
-	}
+	systemRoot := systemDriveRoot()
 
 	live := ui.track(T(lang, "name_top_files"), T(lang, "working"), "")
 	files := findTopLargeFiles(systemRoot, 20, 30*time.Second)
@@ -292,7 +357,7 @@ func runBrowserCacheUI(lang Lang, ui *UI, rep *Report) {
 	}
 }
 
-func runFlushDNSUI(lang Lang, ui *UI, rep *Report) {
+func runFlushDNSUI(lang Lang, ui *UI, rep *Report, winsock func() bool) {
 	ui.step(T(lang, "running", T(lang, "name_flush_dns")))
 
 	live := ui.track(T(lang, "name_flush_dns"), T(lang, "working"), "")
@@ -310,8 +375,13 @@ func runFlushDNSUI(lang Lang, ui *UI, rep *Report) {
 	rep.addDone(m)
 	ui.ok(m.Text(lang))
 
-	fmt.Fprintln(ui.out)
-	if !isYes(ui.Ask("  " + T(lang, "winsock_confirm"))) {
+	if winsock == nil {
+		winsock = func() bool {
+			fmt.Fprintln(ui.out)
+			return isYes(ui.Ask("  " + T(lang, "winsock_confirm")))
+		}
+	}
+	if !winsock() {
 		return
 	}
 
@@ -400,43 +470,46 @@ func runStartupUI(lang Lang, ui *UI, rep *Report) {
 		return
 	}
 	for _, i := range idxs {
-		e := entries[i]
-		if !e.CanDisable {
-			m := msg{"fail_startup_type", []any{e.Name}}
-			rep.addFail(m)
-			ui.err(m.Text(lang))
-			continue
-		}
-		if e.File != "" {
-			dest, err := disableStartupFile(e.File)
-			if err != nil {
-				m := msg{"fail_startup", []any{e.Name, errDetail(err)}}
-				rep.addFail(m)
-				ui.err(m.Text(lang))
-				continue
-			}
-			m := msg{"done_startup_file", []any{e.Name, dest}}
-			rep.addDone(m)
-			ui.ok(m.Text(lang))
-			continue
-		}
-		err := disableRunValue(e)
+		disableStartupUI(lang, ui, rep, entries[i])
+	}
+}
+
+func disableStartupUI(lang Lang, ui *UI, rep *Report, e StartupEntry) {
+	if !e.CanDisable {
+		m := msg{"fail_startup_type", []any{e.Name}}
+		rep.addFail(m)
+		ui.err(m.Text(lang))
+		return
+	}
+	if e.File != "" {
+		dest, err := disableStartupFile(e.File)
 		if err != nil {
-			var m msg
-			switch {
-			case errors.Is(err, ErrNotText):
-				m = msg{"fail_startup_type", []any{e.Name}}
-			case errors.Is(err, ErrValueChanged):
-				m = msg{"fail_startup_changed", []any{e.Name}}
-			default:
-				m = msg{"fail_startup", []any{e.Name, errDetail(err)}}
-			}
+			m := msg{"fail_startup", []any{e.Name, errDetail(err)}}
 			rep.addFail(m)
 			ui.err(m.Text(lang))
-			continue
+			return
 		}
-		m := msg{"done_startup_reg", []any{e.Name, e.Where, clip(e.Command, 300)}}
+		m := msg{"done_startup_file", []any{e.Name, dest}}
 		rep.addDone(m)
 		ui.ok(m.Text(lang))
+		return
 	}
+	err := disableRunValue(e)
+	if err != nil {
+		var m msg
+		switch {
+		case errors.Is(err, ErrNotText):
+			m = msg{"fail_startup_type", []any{e.Name}}
+		case errors.Is(err, ErrValueChanged):
+			m = msg{"fail_startup_changed", []any{e.Name}}
+		default:
+			m = msg{"fail_startup", []any{e.Name, errDetail(err)}}
+		}
+		rep.addFail(m)
+		ui.err(m.Text(lang))
+		return
+	}
+	m := msg{"done_startup_reg", []any{e.Name, e.Where, clip(e.Command, 300)}}
+	rep.addDone(m)
+	ui.ok(m.Text(lang))
 }
