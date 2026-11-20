@@ -13,6 +13,19 @@ using System.Runtime.InteropServices;
 public static class SpeedDiscSmoke {
     [StructLayout(LayoutKind.Sequential)]
     public struct RECT { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)]
+    public struct HIGHCONTRAST { public uint Size, Flags; public IntPtr Scheme; }
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SCROLLBARINFO {
+        public uint Size;
+        public RECT Bounds;
+        public int LineButton, ThumbTop, ThumbBottom, Reserved;
+        public uint State0, State1, State2, State3, State4, State5;
+    }
+    [DllImport("user32.dll", SetLastError=true)]
+    public static extern bool GetScrollBarInfo(IntPtr window, int idObject, ref SCROLLBARINFO info);
+    [DllImport("user32.dll", EntryPoint="SystemParametersInfoW", ExactSpelling=true, SetLastError=true)]
+    public static extern bool QueryHighContrast(uint action, uint size, ref HIGHCONTRAST info, uint flags);
     [DllImport("user32.dll", SetLastError=true)]
     public static extern bool GetWindowRect(IntPtr window, out RECT rect);
     [StructLayout(LayoutKind.Sequential)]
@@ -112,6 +125,7 @@ try {
     $rect = [SpeedDiscSmoke+RECT]::new()
     if (-not [SpeedDiscSmoke]::GetWindowRect($handle, [ref]$rect)) { throw 'Unable to read window dimensions.' }
     $compactFact = 'Compact sizing not exercised in the default launch.'
+    $scrollFact = 'Branded rail exercise runs in the completed compact demo only.'
     if ($fixture) {
         # The app is per-monitor DPI aware. Disable coordinate virtualization on this
         # caller thread while measuring its window and children in screen pixels.
@@ -215,6 +229,61 @@ try {
             }
             $check = if ($Running) { 'English running detail step 2 of 3 at 42%, native progress visible at 42%, both exports visible but disabled' } else { 'Portuguese report readable, both localised exports visible, enabled and in native Tab order' }
             $compactFact = "Compact synthetic demo: ${actualW}x${actualH} logical client at runner DPI $dpi; result height $([Math]::Round($resultHeight)) logical; $check."
+            if ($Demo) {
+                $hc = [SpeedDiscSmoke+HIGHCONTRAST]::new()
+                $hc.Size = [Runtime.InteropServices.Marshal]::SizeOf($hc)
+                if (-not [SpeedDiscSmoke]::QueryHighContrast(0x42, $hc.Size, [ref]$hc, 0)) {
+                    throw 'Cannot query the high contrast setting.'
+                }
+                $highContrast = ($hc.Flags -band 1) -ne 0
+                $sendPointerless = {
+                    param([IntPtr] $hwnd, [uint32] $message, [uint32] $wparam = 0, [int] $lparam = 0)
+                    [UIntPtr] $reply = [UIntPtr]::Zero
+                    if ([SpeedDiscSmoke]::SendMessageTimeout($hwnd, $message, [UIntPtr]::new($wparam), [IntPtr]::new($lparam), 2, 2000, [ref]$reply) -eq [IntPtr]::Zero) {
+                        throw "Native scroll message failed: $message"
+                    }
+                    $reply.ToUInt64()
+                }
+                foreach ($testPair in @(@(102,112,0x018E), @(109,113,0x00CE))) {
+                    $target = [SpeedDiscSmoke]::GetDlgItem($handle, $testPair[0])
+                    $rail = [SpeedDiscSmoke]::GetDlgItem($handle, $testPair[1])
+                    $bar = [SpeedDiscSmoke+SCROLLBARINFO]::new()
+                    $bar.Size = [Runtime.InteropServices.Marshal]::SizeOf($bar)
+                    if (-not [SpeedDiscSmoke]::GetScrollBarInfo($target, -5, [ref]$bar) -or $bar.Bounds.Bottom -le $bar.Bounds.Top -or ($bar.State0 -band 0x18001)) {
+                        throw "Expected a real, scrollable vertical native bar for control $($testPair[0])."
+                    }
+                    if ($highContrast) {
+                        if ($rail -ne [IntPtr]::Zero -and [SpeedDiscSmoke]::IsWindowVisible($rail)) {
+                            throw 'High contrast must leave the native scrollbar unobstructed.'
+                        }
+                        continue
+                    }
+                    $railWait = [Diagnostics.Stopwatch]::StartNew()
+                    $railBounds = [SpeedDiscSmoke+RECT]::new()
+                    do {
+                        if ($rail -ne [IntPtr]::Zero -and [SpeedDiscSmoke]::IsWindowVisible($rail) -and
+                            [SpeedDiscSmoke]::GetWindowRect($rail, [ref]$railBounds) -and
+                            $railBounds.Left -eq $bar.Bounds.Left -and $railBounds.Top -eq $bar.Bounds.Top -and
+                            $railBounds.Right -eq $bar.Bounds.Right -and $railBounds.Bottom -eq $bar.Bounds.Bottom) { break }
+                        Start-Sleep -Milliseconds 40
+                    } while ($railWait.ElapsedMilliseconds -lt 2000)
+                    if ($railWait.ElapsedMilliseconds -ge 2000) {
+                        throw "Branded rail $($testPair[1]) does not match actual native scrollbar geometry."
+                    }
+                    if ($tabOrder.Contains($rail)) { throw 'A visual rail must not become a new Tab stop.' }
+                    $queryTop = [uint32]$testPair[2]
+                    $before = & $sendPointerless $target $queryTop
+                    $point = (($railBounds.Bottom - $railBounds.Top - 1) -shl 16) -bor 2
+                    $null = & $sendPointerless $rail 0x0201 1 $point # WM_LBUTTONDOWN on blank track below thumb
+                    $null = & $sendPointerless $rail 0x0202 0 $point # WM_LBUTTONUP
+                    $after = & $sendPointerless $target $queryTop
+                    if ($after -le $before) { throw "Branded rail did not move control $($testPair[0]): $before -> $after." }
+                    $null = & $sendPointerless $target 0x0115 6 # WM_VSCROLL / SB_TOP
+                    if ((& $sendPointerless $target $queryTop) -ne 0) { throw 'Could not reset scroll position for screenshot.' }
+                }
+                $scrollFact = if ($highContrast) { 'High contrast active: both native bars unobstructed.' } else { 'Branded rails match both native scrollbar bounds; track clicks moved list and result, and neither rail changed Tab order.' }
+            }
+
         } finally {
             $null = [SpeedDiscSmoke]::SetThreadDpiAwarenessContext($priorDpiContext)
         }
@@ -272,6 +341,7 @@ try {
         "Working set on this runner: $workingBytes bytes"
         "Screenshot: $screenshotStatus; synthetic completed demo: $Demo; synthetic running demo: $Running"
         $compactFact
+        $scrollFact
         'Compact sizing at runner DPI is not a 125%-DPI hardware or multi-monitor test.'
         'No maintenance operation, elevation request, system change or export was triggered.'
         'Windows Server smoke is not Windows 10/11 standard-user, USB, UAC, SmartScreen or performance acceptance.'

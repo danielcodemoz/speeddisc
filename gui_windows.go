@@ -94,6 +94,8 @@ type dMinMax struct{ Reserved, MaxSize, MaxPosition, MinTrack, MaxTrack dPoint }
 
 type deskPalette struct{ bg, panel, raised, line, ink, muted, accent, onAccent, h1, h2, heroInk, heroMuted, ok, warn uintptr }
 type deskState struct {
+	scroll                              [2]scrollLayout
+	scrollPosted                        bool
 	win, instance, icon                 uintptr
 	h                                   map[int]uintptr
 	dpi                                 int32
@@ -245,12 +247,13 @@ func (s *deskState) controls() {
 		s.add(id, "BUTTON", 0x0000000B)
 	}
 	s.add(idSearch, "EDIT", 0x0080)
-	s.add(idList, "LISTBOX", 0x00200000|0x0001|0x0100|0x0010|0x0040)
-	s.add(idOutput, "EDIT", 0x00200000|0x0004|0x0040|0x0800)
+	s.add(idList, "LISTBOX", 0x04200000|0x0001|0x0100|0x0010|0x0040)
+	s.add(idOutput, "EDIT", 0x04200000|0x0004|0x0040|0x0800)
 	ic := [2]uint32{8, 0x20}
 	windows.NewLazySystemDLL("comctl32.dll").NewProc("InitCommonControlsEx").Call(uintptr(unsafe.Pointer(&ic)))
 	s.add(idProgress, "msctls_progress32", 0x01)
 	s.add(idMarquee, "msctls_progress32", 0x08)
+	s.initScrollRails()
 	dMessage(s.h[idProgress], 0x406, 0, 100)
 	s.fonts()
 	s.updateTheme()
@@ -328,6 +331,7 @@ func (s *deskState) updateTheme() {
 	}
 	dDWM.NewProc("DwmSetWindowAttribute").Call(s.win, 20, uintptr(unsafe.Pointer(&v)), 4)
 	s.invalid()
+	s.scheduleScrollSync()
 }
 func (s *deskState) sync() {
 	block := s.busy || s.preparing
@@ -413,6 +417,7 @@ func (s *deskState) layout() {
 	s.lay(idOutput, right+13, g.resultTop, rw-26, g.resultBottom-g.resultTop)
 	s.lay(idTxt, right+13, g.exportTop, (rw-34)/2, 34)
 	s.lay(idPDF, right+21+(rw-34)/2, g.exportTop, (rw-34)/2, 34)
+	s.scheduleScrollSync()
 	s.invalid()
 }
 func fill(dc uintptr, r dRect, c uintptr) {
@@ -487,7 +492,7 @@ func (s *deskState) paint(dc uintptr) {
 	}
 	plot(dc, s.fSmall, s.ui.ok, s.box(18, h-74, l-26, 32), line, 0x10)
 	plot(dc, s.fSmall, s.ui.muted, s.box(18, h-32, l-26, 20), "danielpro.dev", 0x20)
-	plot(dc, s.fSmall, s.ui.muted, s.box(x, 24, body-155, 27), s.l("WINDOWS  /  BANCADA LOCAL", "WINDOWS  /  LOCAL WORKBENCH"), 0x20|4)
+	plot(dc, s.fSmall, s.ui.muted, s.box(x, 24, body-155, 27), s.l("Windows  /  Portátil · Sem instalação", "Windows  /  Portable · No installation"), 0x20|4)
 	if g.heroHeight > 0 {
 		hero := s.box(x, 70, body, g.heroHeight)
 		save, _, _ := dGDI.NewProc("SaveDC").Call(dc)
@@ -999,6 +1004,10 @@ func deskProc(hwnd uintptr, msg uint32, w, l uintptr) uintptr {
 					{Label: s.l("Disco principal", "System disk"), Value: "256 GB · " + s.l("84 GB livres", "84 GB available")},
 					{Label: s.l("Memória", "Memory"), Value: "16 GB"},
 					{Label: s.l("Arranque", "Startup"), Value: s.l("8 entradas · só leitura", "8 entries · read only")},
+					{Label: s.l("Ligação de rede", "Network connection"), Value: s.l("Activa · demonstração", "Active · demo")},
+					{Label: s.l("Energia", "Power"), Value: s.l("Equilibrado", "Balanced")},
+					{Label: s.l("Verificação de armazenamento", "Storage check"), Value: s.l("Sem avisos nesta amostra", "No warnings in this sample")},
+					{Label: s.l("Verificação de componentes", "Component check"), Value: s.l("Amostra sem alterações", "Sample without changes")},
 					{Label: s.l("Observação", "Note"), Value: s.l("Nenhuma operação foi executada.", "No operation was executed.")},
 				},
 			})
@@ -1044,6 +1053,11 @@ func deskProc(hwnd uintptr, msg uint32, w, l uintptr) uintptr {
 		dGDI.NewProc("SetTextColor").Call(w, s.ui.ink)
 		dGDI.NewProc("SetBkColor").Call(w, s.ui.panel)
 		return s.brush
+	case 0x001A, 0x031A, wmScrollSync: // WM_SETTINGCHANGE, WM_THEMECHANGED, or native control movement
+		s.syncScrollRails()
+		if msg == wmScrollSync {
+			return 0
+		}
 	case wmProgress:
 		select {
 		case stage := <-s.progress:
