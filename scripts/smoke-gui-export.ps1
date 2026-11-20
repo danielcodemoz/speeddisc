@@ -118,14 +118,6 @@ public static class SpeedDiscExportTest {
         return result.ToString();
     }
 
-    public static bool SetText(IntPtr hwnd, string text) {
-        IntPtr p = Marshal.StringToHGlobalUni(text);
-        try {
-            UIntPtr result;
-            return Send(hwnd, 0x000C, UIntPtr.Zero, p, 2, 1500, out result) != IntPtr.Zero && result.ToUInt64() != 0;
-        } finally { Marshal.FreeHGlobal(p); }
-    }
-
     public static string ConfirmationText(IntPtr dialog) {
         var result = new StringBuilder();
         EnumChildWindows(dialog, delegate(IntPtr hwnd, IntPtr ignored) {
@@ -156,6 +148,17 @@ public static class SpeedDiscExportTest {
 $exe = (Resolve-Path -LiteralPath $Executable).Path
 $evidence = (New-Item -ItemType Directory -Force -Path $EvidenceDirectory).FullName
 $scratch = (New-Item -ItemType Directory -Path (Join-Path $evidence ('exports-' + [Guid]::NewGuid().ToString('N')))).FullName
+# The Explorer dialog may default to Documents even though the process starts in scratch.
+# Resolve our own runner directories before opening the app and remember every existing filename.
+$documents = [Environment]::GetFolderPath([Environment+SpecialFolder]::MyDocuments)
+$allowed = @($scratch)
+if ($documents -and (Test-Path -LiteralPath $documents -PathType Container)) {
+    $allowed += [IO.Path]::GetFullPath($documents)
+}
+$existing = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($folder in $allowed) {
+    Get-ChildItem -LiteralPath $folder -File -Filter 'SpeedDisc-*' | ForEach-Object { $null = $existing.Add($_.FullName) }
+}
 $app = Start-Process -FilePath $exe -WorkingDirectory $scratch -ArgumentList '--demo' -PassThru
 try {
     $timer = [Diagnostics.Stopwatch]::StartNew()
@@ -196,26 +199,32 @@ try {
             throw "Cannot identify the owned $format filename field by standard control ID, synthetic prefill or the sole editable field."
         }
         Write-Output ([SpeedDiscExportTest]::DescribeDialog($dialog))
-        $path = Join-Path $scratch "relatório sintético.$format"
-        if (-not [SpeedDiscExportTest]::SetText($edit, $path) -or [SpeedDiscExportTest]::Text($edit) -cne $path) {
-            throw "Could not set and read back synthetic $format path."
-        }
+        # Confirm exactly the native default as a user would. WM_SETTEXT cannot
+        # reliably synchronise the Explorer dialog's internal file name state.
         if (-not [SpeedDiscExportTest]::ClickDialogButton($dialog, 1)) { throw "Cannot click the native $format Save button." }
         $confirmation = & $findDialog 'SpeedDisc'
         $message = [SpeedDiscExportTest]::ConfirmationText($confirmation)
-        $safeMessage = $message -replace '[\x00-\x08\x0B\x0C\x0E-\x1F]', ''
-        if ($safeMessage.Length -gt 768) { $safeMessage = $safeMessage.Substring(0,768) }
-        # The dialog belongs only to the synthetic runner PID. Inspect its text, but
-        # never follow or read a path named by it outside our controlled scratch.
-        $files = @(Get-ChildItem -LiteralPath $scratch -File | Select-Object -First 20 -ExpandProperty Name)
-        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            Write-Output ("Owned confirmation: " + $safeMessage)
-            Write-Output ("Synthetic scratch files: " + ($files -join ', '))
-            throw "No $format file at exact Unicode path."
+        $match = [regex]::Match($message, '(?s)^Relatório guardado em:\s*(?<path>[^\r\n]+)\s*$')
+        if (-not $match.Success) { throw "The owned dialog did not confirm saving the native $format report." }
+        $reported = $match.Groups['path'].Value.Trim()
+        $basename = [IO.Path]::GetFileName($reported)
+        if ($basename -notmatch ('^SpeedDisc-[0-9]{8}-[0-9]{6}\.' + [regex]::Escape($format) + '$')) {
+            throw "Unexpected native default filename for $format."
         }
-        if ($message -notmatch 'Relatório guardado em:' -or $message.IndexOf($path, [StringComparison]::OrdinalIgnoreCase) -lt 0) {
-            Write-Output ("Owned confirmation: " + $safeMessage)
-            throw "The owned message did not confirm the exact synthetic $format path."
+        $path = $null
+        foreach ($folder in $allowed) {
+            $candidate = Join-Path $folder $basename
+            if ([string]::Equals($candidate, $reported, [StringComparison]::OrdinalIgnoreCase)) {
+                $path = $candidate
+                break
+            }
+        }
+        if (-not $path) { throw 'Native save report path is outside the permitted synthetic runner locations.' }
+        if ($existing.Contains($path)) { throw 'Refusing to read or remove a preexisting report at the native save destination.' }
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "No new $format file at its confirmed native default." }
+        $item = Get-Item -LiteralPath $path
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'Refusing to read a report via a reparse point.'
         }
         if (-not [SpeedDiscExportTest]::ClickDialogButton($confirmation, 1)) { throw "Cannot dismiss $format confirmation." }
         [byte[]] $bytes = [IO.File]::ReadAllBytes($path)
@@ -233,6 +242,13 @@ try {
                 throw 'The saved PDF did not end with its required EOF marker.'
             }
         }
+        # The file is newly created, synthetic, and content-verified. Preserve a
+        # copy as hosted evidence, then remove only our own output from Documents.
+        $proof = Join-Path $scratch $basename
+        if (-not [string]::Equals($proof, $path, [StringComparison]::OrdinalIgnoreCase)) {
+            [IO.File]::Copy($path, $proof, $false)
+            [IO.File]::Delete($path)
+        }
         $limit = [Diagnostics.Stopwatch]::StartNew()
         while ([SpeedDiscExportTest]::IsWindow($confirmation) -and $limit.Elapsed.TotalSeconds -lt 5) { Start-Sleep -Milliseconds 40 }
         if ([SpeedDiscExportTest]::IsWindow($confirmation)) { throw "Could not close $format confirmation." }
@@ -241,7 +257,7 @@ try {
     if (-not $app.CloseMainWindow() -or -not $app.WaitForExit(7000) -or $app.ExitCode -ne 0) {
         throw 'Synthetic SpeedDisc GUI did not close cleanly after exports.'
     }
-    Write-Output 'Synthetic report only. No maintenance, elevation, accounts or privileges were used or changed.'
+    Write-Output 'Synthetic report only. Native default filename tested; custom filename editing not tested. No maintenance, account or elevation changes.'
 } finally {
     $app.Refresh()
     if (-not $app.HasExited) {
