@@ -5,7 +5,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 )
@@ -129,8 +128,19 @@ func cleansNotify(kind CleanKind, paths []string, tick func(int)) []Stats {
 	return out
 }
 
+type runHooks struct {
+	noAutoWrite      bool
+	selectedInfoOnly bool
+	startup          func(Lang, *UI, *Report)
+	winsock          func() bool
+}
+
 func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
-	fresh := rep.markSnap()
+	executeWithHooks(lang, acts, ui, rep, runHooks{})
+}
+
+func executeWithHooks(lang Lang, acts []Action, ui *UI, rep *Report, hooks runHooks) {
+	fresh := (!hooks.selectedInfoOnly || Contains(acts, ActInfo)) && rep.markSnap()
 	if fresh {
 		collectInfo(rep)
 	}
@@ -205,7 +215,11 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 			code, tail, line := runDISM(ui.out, ui.termWidth()-1, scanPaint(ui), T(lang, "working"), ui.utf8)
 			recordCommand(rep, ui, lang, tr("name_dism"), code, tail, true, line, T(lang, "done_dism_line"))
 		case ActStartup:
-			runStartupUI(lang, ui, rep)
+			if hooks.startup != nil {
+				hooks.startup(lang, ui, rep)
+			} else {
+				runStartupUI(lang, ui, rep)
+			}
 		case ActComponentCleanup:
 			ui.step(T(lang, "running", T(lang, "name_component_cleanup")))
 			ui.warn(T(lang, "long_running"))
@@ -216,10 +230,12 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 		case ActBrowserCache:
 			runBrowserCacheUI(lang, ui, rep)
 		case ActFlushDNS:
-			runFlushDNSUI(lang, ui, rep)
+			runFlushDNSUI(lang, ui, rep, hooks.winsock)
 		}
-		rep.setLang(lang)
-		_, _ = rep.Write()
+		if !hooks.noAutoWrite {
+			rep.setLang(lang)
+			_, _ = rep.Write()
+		}
 	}
 
 	if Mutates(acts) {
@@ -238,12 +254,7 @@ func execute(lang Lang, acts []Action, ui *UI, rep *Report) {
 
 func runTopFilesUI(lang Lang, ui *UI, rep *Report) {
 	ui.step(T(lang, "running", T(lang, "name_top_files")))
-	systemRoot := os.Getenv("SystemRoot")
-	if systemRoot == "" {
-		systemRoot = `C:\`
-	} else {
-		systemRoot = systemRoot[:3]
-	}
+	systemRoot := systemDriveRoot()
 
 	live := ui.track(T(lang, "name_top_files"), T(lang, "working"), "")
 	files := findTopLargeFiles(systemRoot, 20, 30*time.Second)
@@ -292,7 +303,7 @@ func runBrowserCacheUI(lang Lang, ui *UI, rep *Report) {
 	}
 }
 
-func runFlushDNSUI(lang Lang, ui *UI, rep *Report) {
+func runFlushDNSUI(lang Lang, ui *UI, rep *Report, winsock func() bool) {
 	ui.step(T(lang, "running", T(lang, "name_flush_dns")))
 
 	live := ui.track(T(lang, "name_flush_dns"), T(lang, "working"), "")
@@ -310,8 +321,13 @@ func runFlushDNSUI(lang Lang, ui *UI, rep *Report) {
 	rep.addDone(m)
 	ui.ok(m.Text(lang))
 
-	fmt.Fprintln(ui.out)
-	if !isYes(ui.Ask("  " + T(lang, "winsock_confirm"))) {
+	if winsock == nil {
+		winsock = func() bool {
+			fmt.Fprintln(ui.out)
+			return isYes(ui.Ask("  " + T(lang, "winsock_confirm")))
+		}
+	}
+	if !winsock() {
 		return
 	}
 
@@ -400,43 +416,46 @@ func runStartupUI(lang Lang, ui *UI, rep *Report) {
 		return
 	}
 	for _, i := range idxs {
-		e := entries[i]
-		if !e.CanDisable {
-			m := msg{"fail_startup_type", []any{e.Name}}
-			rep.addFail(m)
-			ui.err(m.Text(lang))
-			continue
-		}
-		if e.File != "" {
-			dest, err := disableStartupFile(e.File)
-			if err != nil {
-				m := msg{"fail_startup", []any{e.Name, errDetail(err)}}
-				rep.addFail(m)
-				ui.err(m.Text(lang))
-				continue
-			}
-			m := msg{"done_startup_file", []any{e.Name, dest}}
-			rep.addDone(m)
-			ui.ok(m.Text(lang))
-			continue
-		}
-		err := disableRunValue(e)
+		disableStartupUI(lang, ui, rep, entries[i])
+	}
+}
+
+func disableStartupUI(lang Lang, ui *UI, rep *Report, e StartupEntry) {
+	if !e.CanDisable {
+		m := msg{"fail_startup_type", []any{e.Name}}
+		rep.addFail(m)
+		ui.err(m.Text(lang))
+		return
+	}
+	if e.File != "" {
+		dest, err := disableStartupFile(e.File)
 		if err != nil {
-			var m msg
-			switch {
-			case errors.Is(err, ErrNotText):
-				m = msg{"fail_startup_type", []any{e.Name}}
-			case errors.Is(err, ErrValueChanged):
-				m = msg{"fail_startup_changed", []any{e.Name}}
-			default:
-				m = msg{"fail_startup", []any{e.Name, errDetail(err)}}
-			}
+			m := msg{"fail_startup", []any{e.Name, errDetail(err)}}
 			rep.addFail(m)
 			ui.err(m.Text(lang))
-			continue
+			return
 		}
-		m := msg{"done_startup_reg", []any{e.Name, e.Where, clip(e.Command, 300)}}
+		m := msg{"done_startup_file", []any{e.Name, dest}}
 		rep.addDone(m)
 		ui.ok(m.Text(lang))
+		return
 	}
+	err := disableRunValue(e)
+	if err != nil {
+		var m msg
+		switch {
+		case errors.Is(err, ErrNotText):
+			m = msg{"fail_startup_type", []any{e.Name}}
+		case errors.Is(err, ErrValueChanged):
+			m = msg{"fail_startup_changed", []any{e.Name}}
+		default:
+			m = msg{"fail_startup", []any{e.Name, errDetail(err)}}
+		}
+		rep.addFail(m)
+		ui.err(m.Text(lang))
+		return
+	}
+	m := msg{"done_startup_reg", []any{e.Name, e.Where, clip(e.Command, 300)}}
+	rep.addDone(m)
+	ui.ok(m.Text(lang))
 }

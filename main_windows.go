@@ -1,4 +1,4 @@
-//go:build windows
+//go:build windows && !speeddiscgui
 
 package main
 
@@ -41,10 +41,15 @@ func main() {
 		return
 	}
 
+	fullMenu := false
 	for {
-		ui.Banner(lang)
-		ui.Menu(lang)
+		ui.DrawMenu(lang, consoleRows(), fullMenu)
+		fullMenu = false
 		line := ui.Ask("\n> ")
+		if isActionMenu(line) {
+			fullMenu = true
+			continue
+		}
 		if isQuit(line) {
 			break
 		}

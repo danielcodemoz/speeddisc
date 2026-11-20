@@ -5,9 +5,8 @@ package main
 import (
 	"errors"
 	"io"
-	"os"
 	"os/exec"
-
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -112,9 +111,8 @@ func createRestorePoint() error {
 	out, err := runCapture(ps,
 		"-NoProfile",
 		"-NonInteractive",
-		"-ExecutionPolicy", "Bypass",
 		"-Command",
-		"Checkpoint-Computer -Description 'SpeedDisc' -RestorePointType 'MODIFY_SETTINGS'",
+		"Checkpoint-Computer -Description 'SpeedDisc' -RestorePointType 'MODIFY_SETTINGS' -ErrorAction Stop",
 	)
 	if err != nil {
 		detail := clip(strings.TrimSpace(out), 220)
@@ -146,17 +144,13 @@ func getSystemDriveFree() (uint64, error) {
 	if len(disks) == 0 {
 		return 0, ErrNoDisk
 	}
-	systemRoot := os.Getenv("SystemRoot")
-	if systemRoot == "" {
-		systemRoot = `C:\`
-	}
-	systemDrive := strings.ToUpper(systemRoot[:2])
+	systemDrive := strings.ToUpper(filepath.VolumeName(systemDriveRoot()))
 	for _, d := range disks {
-		if strings.ToUpper(d.Letter) == systemDrive[:2] {
+		if strings.ToUpper(d.Letter) == systemDrive {
 			return d.Free, nil
 		}
 	}
-	return disks[0].Free, nil
+	return 0, ErrNoDisk
 }
 
 func flushDNS() error {
@@ -181,4 +175,15 @@ func resetWinsock() error {
 		return errors.New(detail)
 	}
 	return nil
+}
+
+// systemDriveRoot derives the drive from the Windows directory without indexing
+// short/invalid environment strings. A UNC path is not a local system drive.
+func systemDriveRoot() string {
+	volume := filepath.VolumeName(windowsRoot())
+	if len(volume) == 2 && volume[1] == ':' &&
+		((volume[0] >= 'A' && volume[0] <= 'Z') || (volume[0] >= 'a' && volume[0] <= 'z')) {
+		return volume + `\`
+	}
+	return `C:\`
 }

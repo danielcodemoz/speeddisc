@@ -33,8 +33,8 @@ func TestFindTopLargeFiles(t *testing.T) {
 
 	files := findTopLargeFiles(dir, 10, 5*time.Second)
 
-	if len(files) != 2 {
-		t.Errorf("Expected 2 files >= 100MB, got %d", len(files))
+	if len(files) != 3 {
+		t.Errorf("Expected 3 files >= 100 MiB, got %d", len(files))
 	}
 
 	if len(files) > 0 && files[0].Size < files[len(files)-1].Size {
@@ -51,5 +51,28 @@ func TestCleanBrowserCaches(t *testing.T) {
 	stats = cleanBrowserCaches([]string{""}, nil)
 	if len(stats) != 1 || !stats[0].Missing {
 		t.Errorf("Expected 1 missing stat for empty path")
+	}
+}
+
+func TestBrowserCacheExactLeaves(t *testing.T) {
+	dir := t.TempDir()
+	chrome := filepath.Join(dir, "Google", "Chrome", "User Data", "Default", "Cache")
+	firefox := filepath.Join(dir, "Mozilla", "Firefox", "Profiles", "example", "cache2")
+	fixtures := []string{filepath.Join(chrome, "tmp.bin"), filepath.Join(firefox, "tmp.bin")}
+	keep := filepath.Join(filepath.Dir(chrome), "Cookies")
+	for _, p := range append(fixtures, keep) {
+		if err := os.MkdirAll(filepath.Dir(p), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte("fixture"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := cleanBrowserCaches([]string{chrome, filepath.Dir(filepath.Dir(firefox))}, nil)
+	if len(got) != 2 || got[0].Err != nil || got[1].Err != nil || got[0].Removed != 1 || got[1].Removed != 1 {
+		t.Fatalf("unexpected results: %#v", got)
+	}
+	if _, err := os.Stat(keep); err != nil {
+		t.Fatalf("profile file changed: %v", err)
 	}
 }

@@ -68,3 +68,12 @@ func elevated() bool {
 	defer tok.Close()
 	return tok.IsElevated()
 }
+
+// consoleRows reports the visible viewport, never changing the buffer.
+func consoleRows() int {
+	var info windows.ConsoleScreenBufferInfo
+	if err := windows.GetConsoleScreenBufferInfo(windows.Handle(os.Stdout.Fd()), &info); err != nil {
+		return 0
+	}
+	return int(info.Window.Bottom) - int(info.Window.Top) + 1
+}
