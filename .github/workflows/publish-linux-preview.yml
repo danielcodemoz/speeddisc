@@ -1,0 +1,75 @@
+name: Publish SpeedDisc Linux x64 preview 1
+on:
+  push:
+    branches: [codex/publish-speeddisc-linux-preview-1]
+    paths: ['.github/workflows/publish-linux-preview.yml']
+permissions:
+  contents: write
+concurrency:
+  group: speeddisc-linux-preview-1
+  cancel-in-progress: false
+jobs:
+  linux-preview:
+    if: github.repository == 'danielcodemoz/speeddisc'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      RELEASE_TAG: linux-v0.1.0-preview.1
+      SOURCE_SHA: 6bf0423833579af09f0178eb2fd4dd02e39c9979
+      TESTED_ELF_SHA: 66493b3add4ea5e76d064831b1202f4ebd826078839b830f68eb4bc3995b02d9
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          ref: 6bf0423833579af09f0178eb2fd4dd02e39c9979
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version: '1.24.4'
+          cache: false
+      - name: Verify source and test
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          go mod verify
+          go vet ./...
+          go test -race ./...
+      - name: Package only the tested Linux x64 executable
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/speeddisc-linux"
+          name=SpeedDisc-Linux-amd64
+          pkg="$out/stage/$name"
+          mkdir -p "$pkg/licenses" "$out/assets"
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -trimpath -ldflags='-s -w' -o "$pkg/SpeedDisc-Linux" ./cmd/speeddisc-linux
+          echo "$TESTED_ELF_SHA  $pkg/SpeedDisc-Linux" | sha256sum -c -
+          if [ "$(id -u)" -eq 0 ]; then echo 'Expected an unprivileged runner'; exit 1; fi
+          "$pkg/SpeedDisc-Linux" --version
+          cp LINUX.md "$pkg/README.md"
+          cp LICENSE "$pkg/licenses/SpeedDisc-MIT.txt"
+          cp "$(go env GOROOT)/LICENSE" "$pkg/licenses/Go.txt"
+          cp "$(go list -m -f '{{.Dir}}' golang.org/x/sys)/LICENSE" "$pkg/licenses/golang-x-sys.txt"
+          cp cmd/speeddisc-linux/web/OFL-Outfit.txt cmd/speeddisc-linux/web/OFL-Fraunces.txt "$pkg/licenses/"
+          stamp="$(git show -s --format=%ct "$SOURCE_SHA")"
+          tar --sort=name --mtime="@$stamp" --owner=0 --group=0 --numeric-owner -C "$out/stage" -cf - "$name" | gzip -n > "$out/assets/$name.tar.gz"
+          (cd "$out/assets" && sha256sum "$name.tar.gz" > SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt)
+          test "$(tar -xOzf "$out/assets/$name.tar.gz" "$name/SpeedDisc-Linux" | sha256sum | cut -d' ' -f1)" = "$TESTED_ELF_SHA"
+      - name: Publish approved preview (not the latest stable release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo=danielcodemoz/speeddisc
+          official="https://github.com/$repo.git"
+          current="$(git ls-remote "$official" "refs/tags/$RELEASE_TAG")"
+          test -z "$current" || { echo "Release tag already exists; refusing to replace it"; exit 1; }
+          if gh release view "$RELEASE_TAG" --repo "$repo" >/dev/null 2>&1; then
+            echo "Release already exists; refusing to replace it"
+            exit 1
+          fi
+          cat > "$RUNNER_TEMP/linux-notes.md" <<'NOTES'
+          Prévia portátil para Linux x64 (Intel/AMD). Extraia o arquivo e execute `./SpeedDisc-Linux` sem `sudo`. O painel abre no navegador local, funciona offline e não altera o sistema. Inclui seis diagnósticos e exportação TXT/PDF. ARM e outras distribuições ainda não foram validados para esta publicação.
+
+          Portable Linux x64 preview (Intel/AMD). Extract the archive and run `./SpeedDisc-Linux` without `sudo`. The workbench opens locally in your browser, works offline, and runs read-only diagnostics with TXT/PDF exports. This does not replace the Windows stable release.
+          NOTES
+          gh release create "$RELEASE_TAG" "$RUNNER_TEMP/speeddisc-linux/assets/SpeedDisc-Linux-amd64.tar.gz" "$RUNNER_TEMP/speeddisc-linux/assets/SHA256SUMS.txt" --repo "$repo" --target "$SOURCE_SHA" --prerelease --latest=false --title 'SpeedDisc Linux 0.1.0 — Preview 1 (x64)' --notes-file "$RUNNER_TEMP/linux-notes.md"
