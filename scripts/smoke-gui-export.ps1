@@ -27,6 +27,10 @@ public static class SpeedDiscExportTest {
     [DllImport("user32.dll", EntryPoint = "PostMessageW", ExactSpelling = true)]
     private static extern bool Post(IntPtr hwnd, uint message, UIntPtr wparam, IntPtr lparam);
 
+    public static bool CloseMessage(IntPtr dialog) {
+        return Post(dialog, 0x0010, UIntPtr.Zero, IntPtr.Zero); // WM_CLOSE: only a checked, owned informational dialog
+    }
+
     public static IntPtr OwnedDialog(uint pid, IntPtr owner, string title) {
         IntPtr found = IntPtr.Zero;
         EnumWindows(delegate(IntPtr hwnd, IntPtr ignored) {
@@ -226,7 +230,7 @@ try {
         if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
             throw 'Refusing to read a report via a reparse point.'
         }
-        if (-not [SpeedDiscExportTest]::ClickDialogButton($confirmation, 1)) { throw "Cannot dismiss $format confirmation." }
+        if (-not [SpeedDiscExportTest]::CloseMessage($confirmation)) { throw "Cannot dismiss $format confirmation." }
         [byte[]] $bytes = [IO.File]::ReadAllBytes($path)
         if ($format -eq 'txt') {
             $content = [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8)
