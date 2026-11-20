@@ -1,7 +1,7 @@
 from pathlib import Path
 from html.parser import HTMLParser
 from urllib.parse import urlparse,unquote
-import json,hashlib
+import json,hashlib,re
 root=Path(__file__).resolve().parents[1]
 class Parse(HTMLParser):
  def __init__(self):super().__init__();self.ids=[];self.links=[];self.assets=[];self.lang=None;self.h1=0
@@ -13,7 +13,7 @@ class Parse(HTMLParser):
   if tag=='link' and a.get('rel') in ['stylesheet','icon','preload']:self.assets.append(a['href'])
   if tag=='html':self.lang=a.get('lang')
   if tag=='h1':self.h1+=1
-pages=[root/'index.html',root/'en/index.html',*root.glob('guias/*.html'),*root.glob('en/guides/*.html')];errors=[];parsed={}
+pages=[root/'index.html',root/'en/index.html',root/'comandos.html',*root.glob('guias/*.html'),*root.glob('en/guides/*.html')];errors=[];parsed={}
 for p in pages:
  d=Parse();d.feed(p.read_text(encoding="utf-8"));parsed[p]=d
  if d.h1!=1:errors.append(f'{p}: h1 count {d.h1}')
@@ -36,7 +36,10 @@ for p in [root/'index.html',root/'en/index.html']:
   assert alias in parsed[p].ids,alias
 for filename, expected in json.loads((root/'_source/legacy-sha256.json').read_text(encoding="utf-8")).items():
  assert hashlib.sha256((root/filename).read_bytes()).hexdigest()==expected,filename
+commands=[json.loads(value) for value in re.findall(r'\bcmd:\s*("(?:\\.|[^"\\])*")',(root/'comandos.js').read_text(encoding="utf-8"))]
+assert len(commands)==len(set(commands))==68 and all(not any(c in x for c in "\r\n") for x in commands)
+assert hashlib.sha256(json.dumps(commands,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()=='e96d24ec9aade48b91b580867d1c4de107d2a288f416dc8fbf368b725e98a009'
 rel=json.loads((root/'release-verification.json').read_text(encoding="utf-8"));assert all(x['matches_github_digest'] for x in rel['assets'])
-report={'pages_checked':len(pages),'broken_links_or_assets':errors,'legacy_files_unchanged':True,'legacy_anchor_aliases_present':True,'release_assets_verified':len(rel['assets']),'browser_layout_tests':'BLOCKED: Chromium socket Operation not permitted; cloud browser cannot reach local server. No screenshot or visual/mobile pass claimed.'}
+report={'pages_checked':len(pages),'broken_links_or_assets':errors,'legacy_files_unchanged':True,'legacy_anchor_aliases_present':True,'release_assets_verified':len(rel['assets']),'original_cmd_templates_preserved':len(commands)}
 with (root/'_source/static-test-results.json').open("w", encoding="utf-8", newline="\n") as out: out.write(json.dumps(report,indent=2))
 print(json.dumps(report,indent=2));assert not errors
