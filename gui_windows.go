@@ -240,9 +240,7 @@ func (s *deskState) captions() {
 	dText(s.h[idTheme], s.l("Tema", "Theme"))
 	dText(s.h[idTxt], s.l("Exportar TXT", "Export TXT"))
 	dText(s.h[idPDF], s.l("Exportar PDF", "Export PDF"))
-	p := u16(s.l("Pesquisar ferramentas…", "Search tools…"))
-	dMessage(s.h[idSearch], 0x1501, 1, ptr(p))
-	runtime.KeepAlive(p)
+
 }
 func squashSearch(x string) string {
 	return strings.NewReplacer("á", "a", "à", "a", "ã", "a", "â", "a", "é", "e", "ê", "e", "í", "i", "ó", "o", "ô", "o", "õ", "o", "ú", "u", "ç", "c").Replace(strings.ToLower(x))
@@ -270,6 +268,9 @@ func (s *deskState) filter(prefer string) {
 	}
 	if len(s.rows) > 0 {
 		dMessage(h, 0x0186, uintptr(sel), 0)
+		if sel <= 3 {
+			dMessage(h, 0x0197, 0, 0)
+		}
 		s.selectItem(sel)
 	} else {
 		s.selectItem(-1)
@@ -324,6 +325,7 @@ func (s *deskState) sync() {
 		s.enable(idNav+i, !block)
 	}
 	s.enable(idSearch, !block && !s.picking)
+	s.hShow(idSearch, !s.picking)
 	canRun := s.item.ID != "" && !block
 	if s.picking {
 		canRun = !block && s.picked >= 0 && s.picked < len(s.startupItems) && s.startupItems[s.picked].CanDisable
@@ -375,8 +377,8 @@ func (s *deskState) layout() {
 	for i := range deskCats {
 		s.lay(idNav+i, 12, 170+int32(i)*44, l-24, 37)
 	}
-	s.lay(idSearch, x+13, y+47, left-26, 26)
-	s.lay(idList, x+9, y+95, left-18, h-y-144)
+	s.lay(idSearch, x+13, y+63, left-26, 24)
+	s.lay(idList, x+9, y+114, left-18, h-y-163)
 	by := y + 165
 	s.lay(idRun, right+13, by, rw-26, 38)
 	s.lay(idOptions, right+13, by+45, rw-26, 32)
@@ -461,7 +463,18 @@ func (s *deskState) paint(dc uintptr) {
 	plot(dc, s.fSmall, s.ui.muted, s.box(18, h-32, l-26, 20), "danielpro.dev", 0x20)
 	plot(dc, s.fSmall, s.ui.muted, s.box(x, 24, body-155, 27), s.l("WINDOWS  /  BANCADA LOCAL", "WINDOWS  /  LOCAL WORKBENCH"), 0x20|4)
 	hero := s.box(x, 70, body, 128)
+	save, _, _ := dGDI.NewProc("SaveDC").Call(dc)
+	region, _, _ := dGDI.NewProc("CreateRoundRectRgn").Call(uintptr(hero.L), uintptr(hero.T), uintptr(hero.R+1), uintptr(hero.B+1), uintptr(s.px(20)), uintptr(s.px(20)))
+	if region != 0 && save != 0 {
+		dGDI.NewProc("ExtSelectClipRgn").Call(dc, region, 1)
+	}
 	gradient(dc, hero, s.ui.h1, s.ui.h2)
+	if save != 0 {
+		dGDI.NewProc("RestoreDC").Call(dc, save)
+	}
+	if region != 0 {
+		dDelete.Call(region)
+	}
 	plot(dc, s.fSmall, s.ui.heroMuted, s.box(x+19, 85, body-39, 24), s.l("DIAGNÓSTICO E MANUTENÇÃO  /  OFFLINE", "DIAGNOSTICS & MAINTENANCE  /  OFFLINE"), 0x20)
 	plot(dc, s.fHero, s.ui.heroInk, s.box(x+17, 111, body-35, 43), s.l("O teu PC, sob controlo.", "Your PC, in your control."), 0x20)
 	plot(dc, s.fSmall, s.ui.heroMuted, s.box(x+19, 162, body-38, 34), s.l("Analisa primeiro. Decide o que mudar. Guarda o resultado.", "Analyse first. Choose what changes. Keep the result."), 0x10)
@@ -472,12 +485,15 @@ func (s *deskState) paint(dc uintptr) {
 		heading = s.l("Entradas de arranque", "Startup entries")
 	}
 	plot(dc, s.fHead, s.ui.ink, s.box(x+13, y+11, left-26, 35), heading, 0x20)
-	s.round(dc, s.box(x+8, y+42, left-16, 36), s.ui.raised, 11)
+	if !s.picking {
+		plot(dc, s.fSmall, s.ui.muted, s.box(x+12, y+42, left-24, 19), s.l("Pesquisar ferramentas", "Search tools"), 0x20)
+		s.round(dc, s.box(x+8, y+60, left-16, 28), s.ui.raised, 10)
+	}
 	count := fmt.Sprintf(s.l("%d ferramentas encontradas", "%d tools found"), len(s.rows))
 	if s.picking {
 		count = fmt.Sprintf(s.l("%d entradas encontradas", "%d entries found"), len(s.startupItems))
 	}
-	plot(dc, s.fSmall, s.ui.muted, s.box(x+12, y+80, left-24, 16), count, 0x20)
+	plot(dc, s.fSmall, s.ui.muted, s.box(x+12, y+94, left-24, 16), count, 0x20)
 	title := s.item.Title
 	if title == "" {
 		title = s.l("Sem correspondências", "No matches")
@@ -775,7 +791,7 @@ func (s *deskState) finish(r report.Result) {
 			b.WriteString("\r\n" + s.l("Consulte o ficheiro exportado para o relatório completo.", "See the exported file for the full report."))
 			break
 		}
-		b.WriteString(row.Label + ": " + row.Value + "\r\n\r\n")
+		b.WriteString(row.Label + ": " + row.Value + "\r\n")
 	}
 	dText(s.h[idOutput], b.String())
 	dMessage(s.h[idOutput], 0x00B1, 0, 0)
@@ -1006,6 +1022,9 @@ func main() {
 		return
 	}
 	dUser.NewProc("ShowWindow").Call(hwnd, 5)
+	if s.pendingID == "" {
+		dMessage(s.h[idList], 0x0197, 0, 0)
+	}
 	dUser.NewProc("UpdateWindow").Call(hwnd)
 	var m dMsg
 	for {

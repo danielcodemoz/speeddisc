@@ -16,6 +16,10 @@ public static class SpeedDiscSmoke {
     public static extern uint GetWindowThreadProcessId(IntPtr window, out uint pid);
     [DllImport("user32.dll")]
     public static extern bool IsWindowVisible(IntPtr window);
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetDlgItem(IntPtr window, int id);
+    [DllImport("user32.dll", SetLastError=true)]
+    public static extern IntPtr SendMessageTimeout(IntPtr window, uint message, UIntPtr w, IntPtr l, uint flags, uint timeout, out UIntPtr result);
     [DllImport("user32.dll", SetLastError=true)]
     public static extern bool PrintWindow(IntPtr window, IntPtr buffer, uint flags);
 }
@@ -48,6 +52,19 @@ try {
     }
     if (-not $app.WaitForInputIdle(5000) -or -not $app.Responding) {
         throw 'SpeedDisc window is not processing messages.'
+    }
+    $list = [SpeedDiscSmoke]::GetDlgItem($handle, 102)
+    $ask = { param([uint32] $message)
+        [UIntPtr] $value = [UIntPtr]::Zero
+        if ($list -eq [IntPtr]::Zero -or [SpeedDiscSmoke]::SendMessageTimeout($list, $message, [UIntPtr]::Zero, [IntPtr]::Zero, 2, 2000, [ref]$value) -eq [IntPtr]::Zero) {
+            throw 'The native tool list did not respond.'
+        }
+        return $value.ToUInt64()
+    }
+    $topIndex = & $ask 0x018E # LB_GETTOPINDEX
+    $selectedIndex = & $ask 0x0188 # LB_GETCURSEL
+    if ($topIndex -ne 0 -or $selectedIndex -ne 2) {
+        throw "Unexpected initial list state: top=$topIndex selected=$selectedIndex; expected top 0 and Só ver (index 2)."
     }
     $rect = [SpeedDiscSmoke+RECT]::new()
     if (-not [SpeedDiscSmoke]::GetWindowRect($handle, [ref]$rect)) { throw 'Unable to read window dimensions.' }
@@ -97,6 +114,7 @@ try {
     $facts = @(
         'Window launch, visible process-owned window, responsiveness and normal close: PASS'
         "Window: $caption / ${width}x${height}"
+        "Initial list: top=$topIndex, selected=$selectedIndex (Só ver)"
         "User token administrator: $adminToken"
         "Time to responsive window on this runner (includes polling): ${readyMs} ms"
         "Working set on this runner: $workingBytes bytes"
