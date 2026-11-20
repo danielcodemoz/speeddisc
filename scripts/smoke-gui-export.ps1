@@ -126,6 +126,25 @@ public static class SpeedDiscExportTest {
         } finally { Marshal.FreeHGlobal(p); }
     }
 
+    public static string ConfirmationText(IntPtr dialog) {
+        var result = new StringBuilder();
+        EnumChildWindows(dialog, delegate(IntPtr hwnd, IntPtr ignored) {
+            if (!ClassOf(hwnd).Equals("Static", StringComparison.OrdinalIgnoreCase) || !IsWindowVisible(hwnd)) return true;
+            string text = Text(hwnd);
+            if (text.Length != 0) result.AppendLine(text);
+            return true;
+        }, IntPtr.Zero);
+        return result.ToString().Trim();
+    }
+
+    public static bool ClickDialogButton(IntPtr window, uint id) {
+        IntPtr button = GetDlgItem(window, (int)id);
+        // Let the real button dispatch its native notifications. Posting avoids
+        // blocking the harness when clicking Save opens the confirmation modal.
+        return button != IntPtr.Zero && ClassOf(button).Equals("Button", StringComparison.OrdinalIgnoreCase) &&
+               IsWindowVisible(button) && IsWindowEnabled(button) && Post(button, 0x00F5, UIntPtr.Zero, IntPtr.Zero);
+    }
+
     public static bool PostButton(IntPtr window, uint id) {
         IntPtr button = GetDlgItem(window, (int)id);
         // BN_CLICKED is zero. Post instead of sending so modal dialogs do not block the controller.
@@ -181,10 +200,24 @@ try {
         if (-not [SpeedDiscExportTest]::SetText($edit, $path) -or [SpeedDiscExportTest]::Text($edit) -cne $path) {
             throw "Could not set and read back synthetic $format path."
         }
-        if (-not [SpeedDiscExportTest]::PostButton($dialog, 1)) { throw "Cannot submit the $format save dialog." }
+        if (-not [SpeedDiscExportTest]::ClickDialogButton($dialog, 1)) { throw "Cannot click the native $format Save button." }
         $confirmation = & $findDialog 'SpeedDisc'
-        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "No $format file at exact Unicode path." }
-        if (-not [SpeedDiscExportTest]::PostButton($confirmation, 1)) { throw "Cannot dismiss $format confirmation." }
+        $message = [SpeedDiscExportTest]::ConfirmationText($confirmation)
+        $safeMessage = $message -replace '[\x00-\x08\x0B\x0C\x0E-\x1F]', ''
+        if ($safeMessage.Length -gt 768) { $safeMessage = $safeMessage.Substring(0,768) }
+        # The dialog belongs only to the synthetic runner PID. Inspect its text, but
+        # never follow or read a path named by it outside our controlled scratch.
+        $files = @(Get-ChildItem -LiteralPath $scratch -File | Select-Object -First 20 -ExpandProperty Name)
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            Write-Output ("Owned confirmation: " + $safeMessage)
+            Write-Output ("Synthetic scratch files: " + ($files -join ', '))
+            throw "No $format file at exact Unicode path."
+        }
+        if ($message -notmatch 'Relatório guardado em:' -or $message.IndexOf($path, [StringComparison]::OrdinalIgnoreCase) -lt 0) {
+            Write-Output ("Owned confirmation: " + $safeMessage)
+            throw "The owned message did not confirm the exact synthetic $format path."
+        }
+        if (-not [SpeedDiscExportTest]::ClickDialogButton($confirmation, 1)) { throw "Cannot dismiss $format confirmation." }
         [byte[]] $bytes = [IO.File]::ReadAllBytes($path)
         if ($format -eq 'txt') {
             $content = [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8)
