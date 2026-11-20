@@ -38,6 +38,6 @@ without changing the CLI. The Windows smoke workflow uses test fixtures, opens
 and closes the app without maintenance, and tries to capture the regular and
 fictional-report windows. Hosted Windows Server testing is not interactive
 Windows 10/11 acceptance. Before promoting a public binary, verify a real
-standard-user session (with and without UAC), window scale/keyboard navigation,
+standard-user session (with and without UAC), including 1366×768 at 125% scaling, keyboard navigation,
 and one read-only estimate plus TXT/PDF save in an isolated environment. Test
 changing operations only on disposable Windows fixtures.

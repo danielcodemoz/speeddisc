@@ -362,12 +362,10 @@ func (s *deskState) layout() {
 	var r dRect
 	dSize.Call(s.win, uintptr(unsafe.Pointer(&r)))
 	w, h := s.dp(r.R), s.dp(r.B)
-	l := int32(218)
-	if w < 900 {
-		l = 180
-	}
+	g := layoutGUI(w, h)
+	l := g.side
 	x := l + 22
-	y := int32(214)
+	y := g.contentTop
 	body := w - x - 22
 	left := (body * 42) / 100
 	right := x + left + 12
@@ -375,16 +373,16 @@ func (s *deskState) layout() {
 	s.lay(idLang, w-143, 19, 50, 34)
 	s.lay(idTheme, w-84, 19, 62, 34)
 	for i := range deskCats {
-		s.lay(idNav+i, 12, 170+int32(i)*44, l-24, 37)
+		s.lay(idNav+i, 12, g.navTop+int32(i)*g.navPitch, l-24, 37)
 	}
 	s.lay(idSearch, x+13, y+63, left-26, 24)
 	s.lay(idList, x+9, y+114, left-18, h-y-163)
-	by := y + 165
+	by := y + g.runTop
 	s.lay(idRun, right+13, by, rw-26, 38)
-	s.lay(idOptions, right+13, by+45, rw-26, 32)
-	s.lay(idOutput, right+13, y+281, rw-26, h-y-358)
-	s.lay(idTxt, right+13, h-70, (rw-34)/2, 34)
-	s.lay(idPDF, right+21+(rw-34)/2, h-70, (rw-34)/2, 34)
+	s.lay(idOptions, right+13, y+g.optionsTop, rw-26, 32)
+	s.lay(idOutput, right+13, g.resultTop, rw-26, g.resultBottom-g.resultTop)
+	s.lay(idTxt, right+13, g.exportTop, (rw-34)/2, 34)
+	s.lay(idPDF, right+21+(rw-34)/2, g.exportTop, (rw-34)/2, 34)
 	s.invalid()
 }
 func fill(dc uintptr, r dRect, c uintptr) {
@@ -432,12 +430,10 @@ func (s *deskState) paint(dc uintptr) {
 	dSize.Call(s.win, uintptr(unsafe.Pointer(&r)))
 	w, h := s.dp(r.R), s.dp(r.B)
 	fill(dc, r, s.ui.bg)
-	l := int32(218)
-	if w < 900 {
-		l = 180
-	}
+	g := layoutGUI(w, h)
+	l := g.side
 	x := l + 22
-	y := int32(214)
+	y := g.contentTop
 	body := w - x - 22
 	left := body * 42 / 100
 	right := x + left + 12
@@ -451,7 +447,7 @@ func (s *deskState) paint(dc uintptr) {
 	}
 	plot(dc, s.fHead, s.ui.ink, s.box(57, 18, l-62, 38), "SpeedDisc", 0x20|4)
 	plot(dc, s.fSmall, s.ui.muted, s.box(18, 67, l-24, 36), s.l("OFICINA PORTÁTIL", "PORTABLE WORKBENCH"), 0x10)
-	plot(dc, s.fSmall, s.ui.muted, s.box(20, 142, l-30, 24), s.l("ESPAÇO DE TRABALHO", "WORKSPACE"), 0x20)
+	plot(dc, s.fSmall, s.ui.muted, s.box(20, g.navTop-28, l-30, 24), s.l("ESPAÇO DE TRABALHO", "WORKSPACE"), 0x20)
 	line := s.l("Sessão normal", "Standard session")
 	if s.admin && !s.demo {
 		line = s.l("Sessão de administrador", "Administrator session")
@@ -462,22 +458,26 @@ func (s *deskState) paint(dc uintptr) {
 	plot(dc, s.fSmall, s.ui.ok, s.box(18, h-74, l-26, 32), line, 0x10)
 	plot(dc, s.fSmall, s.ui.muted, s.box(18, h-32, l-26, 20), "danielpro.dev", 0x20)
 	plot(dc, s.fSmall, s.ui.muted, s.box(x, 24, body-155, 27), s.l("WINDOWS  /  BANCADA LOCAL", "WINDOWS  /  LOCAL WORKBENCH"), 0x20|4)
-	hero := s.box(x, 70, body, 128)
-	save, _, _ := dGDI.NewProc("SaveDC").Call(dc)
-	region, _, _ := dGDI.NewProc("CreateRoundRectRgn").Call(uintptr(hero.L), uintptr(hero.T), uintptr(hero.R+1), uintptr(hero.B+1), uintptr(s.px(20)), uintptr(s.px(20)))
-	if region != 0 && save != 0 {
-		dGDI.NewProc("ExtSelectClipRgn").Call(dc, region, 1)
+	if g.heroHeight > 0 {
+		hero := s.box(x, 70, body, g.heroHeight)
+		save, _, _ := dGDI.NewProc("SaveDC").Call(dc)
+		region, _, _ := dGDI.NewProc("CreateRoundRectRgn").Call(uintptr(hero.L), uintptr(hero.T), uintptr(hero.R+1), uintptr(hero.B+1), uintptr(s.px(20)), uintptr(s.px(20)))
+		if region != 0 && save != 0 {
+			dGDI.NewProc("ExtSelectClipRgn").Call(dc, region, 1)
+		}
+		gradient(dc, hero, s.ui.h1, s.ui.h2)
+		if save != 0 {
+			dGDI.NewProc("RestoreDC").Call(dc, save)
+		}
+		if region != 0 {
+			dDelete.Call(region)
+		}
+		plot(dc, s.fSmall, s.ui.heroMuted, s.box(x+19, 85, body-39, 24), s.l("DIAGNÓSTICO E MANUTENÇÃO  /  OFFLINE", "DIAGNOSTICS & MAINTENANCE  /  OFFLINE"), 0x20)
+		plot(dc, s.fHero, s.ui.heroInk, s.box(x+17, 111, body-35, 43), s.l("O teu PC, sob controlo.", "Your PC, in your control."), 0x20)
+		if g.heroHeight >= 128 {
+			plot(dc, s.fSmall, s.ui.heroMuted, s.box(x+19, 162, body-38, 34), s.l("Analisa primeiro. Decide o que mudar. Guarda o resultado.", "Analyse first. Choose what changes. Keep the result."), 0x10)
+		}
 	}
-	gradient(dc, hero, s.ui.h1, s.ui.h2)
-	if save != 0 {
-		dGDI.NewProc("RestoreDC").Call(dc, save)
-	}
-	if region != 0 {
-		dDelete.Call(region)
-	}
-	plot(dc, s.fSmall, s.ui.heroMuted, s.box(x+19, 85, body-39, 24), s.l("DIAGNÓSTICO E MANUTENÇÃO  /  OFFLINE", "DIAGNOSTICS & MAINTENANCE  /  OFFLINE"), 0x20)
-	plot(dc, s.fHero, s.ui.heroInk, s.box(x+17, 111, body-35, 43), s.l("O teu PC, sob controlo.", "Your PC, in your control."), 0x20)
-	plot(dc, s.fSmall, s.ui.heroMuted, s.box(x+19, 162, body-38, 34), s.l("Analisa primeiro. Decide o que mudar. Guarda o resultado.", "Analyse first. Choose what changes. Keep the result."), 0x10)
 	s.panel(dc, s.box(x, y, left, h-y-26))
 	s.panel(dc, s.box(right, y, rw, h-y-26))
 	heading := s.l("Ferramentas", "Tools")
@@ -517,7 +517,7 @@ func (s *deskState) paint(dc uintptr) {
 		detail = s.l("Tente outro termo ou categoria.", "Try another term or category.")
 	}
 	plot(dc, s.fBody, s.ui.muted, s.box(right+13, y+96, rw-26, 65), detail, 0x10)
-	fill(dc, s.box(right+13, y+246, rw-26, 1), s.ui.line)
+	fill(dc, s.box(right+13, y+g.divTop, rw-26, 1), s.ui.line)
 	status := s.l("Último resultado", "Last result")
 	if s.busy {
 		status = s.l("A processar…", "Working…")
@@ -525,7 +525,7 @@ func (s *deskState) paint(dc uintptr) {
 	if !s.busy && s.runResult != nil {
 		status = s.l("Último resultado: ", "Last result: ") + s.runResult.Status
 	}
-	plot(dc, s.fBold, s.ui.ink, s.box(right+13, y+252, rw-26, 29), status, 0x20)
+	plot(dc, s.fBold, s.ui.ink, s.box(right+13, y+g.resultHeading, rw-26, 23), status, 0x20)
 	plot(dc, s.fSmall, s.ui.muted, s.box(x, h-24, body, 20), s.l("RELATÓRIOS LOCAIS  ·  NADA É ENVIADO", "LOCAL REPORTS  ·  NOTHING IS UPLOADED"), 0x20)
 }
 func (s *deskState) drawControl(v *dDrawItem) {
@@ -909,8 +909,9 @@ func deskProc(hwnd uintptr, msg uint32, w, l uintptr) uintptr {
 		return 0
 	case 0x24: // WM_GETMINMAXINFO
 		m := (*dMinMax)(messageData(l))
-		m.MinTrack.X = s.px(800)
-		m.MinTrack.Y = s.px(670)
+		area := monitorWorkArea(hwnd)
+		m.MinTrack.X = min(s.px(800), area.R-area.L)
+		m.MinTrack.Y = min(s.px(505), area.B-area.T)
 		return 0
 	case 0x02E0: // WM_DPICHANGED
 		s.dpi = int32(w & 0xffff)
@@ -971,6 +972,27 @@ func deskProc(hwnd uintptr, msg uint32, w, l uintptr) uintptr {
 	}
 	return dDefault(hwnd, msg, w, l)
 }
+
+// Use the work area, not the entire panel behind the taskbar.
+type desktopMonitorInfo struct {
+	Size         uint32
+	Bounds, Work dRect
+	Flags        uint32
+}
+
+func monitorWorkArea(hwnd uintptr) dRect {
+	monitor, _, _ := dUser.NewProc("MonitorFromWindow").Call(hwnd, 1)
+	m := desktopMonitorInfo{Size: uint32(unsafe.Sizeof(desktopMonitorInfo{}))}
+	if monitor != 0 {
+		ok, _, _ := dUser.NewProc("GetMonitorInfoW").Call(monitor, uintptr(unsafe.Pointer(&m)))
+		if ok != 0 && m.Work.R > m.Work.L && m.Work.B > m.Work.T {
+			return m.Work
+		}
+	}
+	w, _, _ := dUser.NewProc("GetSystemMetrics").Call(0)
+	h, _, _ := dUser.NewProc("GetSystemMetrics").Call(1)
+	return dRect{R: int32(w), B: int32(h)}
+}
 func main() {
 	runtime.LockOSThread()
 	dpiInit := dUser.NewProc("SetProcessDpiAwarenessContext")
@@ -1005,16 +1027,18 @@ func main() {
 		return
 	}
 	title := u16("SpeedDisc · " + s.l("Oficina portátil", "Portable workbench"))
-	screenW, _, _ := dUser.NewProc("GetSystemMetrics").Call(0)
-	screenH, _, _ := dUser.NewProc("GetSystemMetrics").Call(1)
+	area := monitorWorkArea(0)
+	screenW, screenH := uintptr(area.R-area.L), uintptr(area.B-area.T)
 	scale := uintptr(96)
 	if p := dUser.NewProc("GetDpiForSystem"); p.Find() == nil {
 		if n, _, _ := p.Call(); n > 0 {
 			scale = n
 		}
 	}
-	w, h := min(uintptr(1200)*scale/96, screenW*94/100), min(uintptr(800)*scale/96, screenH*93/100)
-	hwnd, _, _ := dCreate.Call(0, ptr(cls), ptr(title), 0x02CF0000, 0x80000000, 0x80000000, w, h, 0, 0, inst, 0)
+	w, h := min(uintptr(1200)*scale/96, screenW), min(uintptr(800)*scale/96, screenH)
+	s.dpi = int32(scale)
+	x, y := area.L+int32((screenW-w)/2), area.T+int32((screenH-h)/2)
+	hwnd, _, _ := dCreate.Call(0, ptr(cls), ptr(title), 0x02CF0000, uintptr(x), uintptr(y), w, h, 0, 0, inst, 0)
 	runtime.KeepAlive(cls)
 	runtime.KeepAlive(title)
 	if hwnd == 0 {

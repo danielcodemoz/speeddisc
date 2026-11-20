@@ -12,6 +12,24 @@ public static class SpeedDiscSmoke {
     public struct RECT { public int Left, Top, Right, Bottom; }
     [DllImport("user32.dll", SetLastError=true)]
     public static extern bool GetWindowRect(IntPtr window, out RECT rect);
+    [StructLayout(LayoutKind.Sequential)]
+    public struct POINT { public int X, Y; }
+    [DllImport("user32.dll", SetLastError=true)]
+    public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+    [DllImport("user32.dll")]
+    public static extern uint GetDpiForWindow(IntPtr window);
+    [DllImport("user32.dll", SetLastError=true)]
+    public static extern bool GetClientRect(IntPtr window, out RECT rect);
+    [DllImport("user32.dll", SetLastError=true)]
+    public static extern bool ClientToScreen(IntPtr window, ref POINT point);
+    [DllImport("user32.dll", SetLastError=true)]
+    public static extern bool SetWindowPos(IntPtr window, IntPtr insertAfter, int x, int y, int width, int height, uint flags);
+    [DllImport("user32.dll")]
+    public static extern bool IsWindowEnabled(IntPtr window);
+    [DllImport("user32.dll")]
+    public static extern int GetWindowLongW(IntPtr window, int index);
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetNextDlgTabItem(IntPtr window, IntPtr control, bool previous);
     [DllImport("user32.dll", SetLastError=true)]
     public static extern uint GetWindowThreadProcessId(IntPtr window, out uint pid);
     [DllImport("user32.dll")]
@@ -68,6 +86,84 @@ try {
     }
     $rect = [SpeedDiscSmoke+RECT]::new()
     if (-not [SpeedDiscSmoke]::GetWindowRect($handle, [ref]$rect)) { throw 'Unable to read window dimensions.' }
+    $compactFact = 'Compact sizing not exercised in the default launch.'
+    if ($Demo) {
+        # The app is per-monitor DPI aware. Disable coordinate virtualization on this
+        # caller thread while measuring its window and children in screen pixels.
+        $priorDpiContext = [SpeedDiscSmoke]::SetThreadDpiAwarenessContext([IntPtr]::new(-4))
+        if ($priorDpiContext -eq [IntPtr]::Zero) { throw 'Cannot use per-monitor DPI coordinates.' }
+        try {
+            $dpi = [SpeedDiscSmoke]::GetDpiForWindow($handle)
+            if ($dpi -lt 96 -or $dpi -gt 384) { throw "Unexpected window DPI: $dpi" }
+            $scale = $dpi / 96.0
+            $client = [SpeedDiscSmoke+RECT]::new()
+            if (-not [SpeedDiscSmoke]::GetWindowRect($handle, [ref]$rect) -or
+                -not [SpeedDiscSmoke]::GetClientRect($handle, [ref]$client)) {
+                throw 'Cannot measure the initial outer and client rectangles.'
+            }
+            $nonClientWidth = ($rect.Right - $rect.Left) - ($client.Right - $client.Left)
+            $nonClientHeight = ($rect.Bottom - $rect.Top) - ($client.Bottom - $client.Top)
+            if ($nonClientWidth -lt 0 -or $nonClientWidth -gt 160*$scale -or
+                $nonClientHeight -lt 0 -or $nonClientHeight -gt 160*$scale) {
+                throw "Unexpected frame dimensions: ${nonClientWidth}x${nonClientHeight}"
+            }
+            $targetWidth = [int][Math]::Round(1040 * $scale) + $nonClientWidth
+            $targetHeight = [int][Math]::Round(535 * $scale) + $nonClientHeight
+            # SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE: resize this window only.
+            if (-not [SpeedDiscSmoke]::SetWindowPos($handle, [IntPtr]::Zero, 0, 0, $targetWidth, $targetHeight, 0x16)) {
+                throw 'Cannot resize the SpeedDisc demo window.'
+            }
+            if (-not [SpeedDiscSmoke]::GetClientRect($handle, [ref]$client) -or
+                -not [SpeedDiscSmoke]::GetWindowRect($handle, [ref]$rect)) {
+                throw 'Cannot measure the resized SpeedDisc window.'
+            }
+            $actualW = [int][Math]::Round(($client.Right - $client.Left) / $scale)
+            $actualH = [int][Math]::Round(($client.Bottom - $client.Top) / $scale)
+            if ([Math]::Abs($actualW - 1040) -gt 5 -or [Math]::Abs($actualH - 535) -gt 5) {
+                throw "Expected about 1040x535 logical client units; got ${actualW}x${actualH}."
+            }
+            $clientOrigin = [SpeedDiscSmoke+POINT]::new()
+            if (-not [SpeedDiscSmoke]::ClientToScreen($handle, [ref]$clientOrigin)) {
+                throw 'Cannot map the client origin to screen coordinates.'
+            }
+            $tabOrder = [Collections.Generic.HashSet[IntPtr]]::new()
+            $next = [IntPtr]::Zero
+            for ($i = 0; $i -lt 64; $i++) {
+                $next = [SpeedDiscSmoke]::GetNextDlgTabItem($handle, $next, $false)
+                if ($next -eq [IntPtr]::Zero -or -not $tabOrder.Add($next)) { break }
+            }
+            $resultHeight = 0.0
+            foreach ($controlId in @(109, 104, 105)) {
+                $control = [SpeedDiscSmoke]::GetDlgItem($handle, $controlId)
+                $bounds = [SpeedDiscSmoke+RECT]::new()
+                if ($control -eq [IntPtr]::Zero -or -not [SpeedDiscSmoke]::IsWindowVisible($control) -or
+                    -not [SpeedDiscSmoke]::GetWindowRect($control, [ref]$bounds)) {
+                    throw "Missing or invisible compact control #$controlId."
+                }
+                $controlWidth = $bounds.Right - $bounds.Left
+                $controlHeight = $bounds.Bottom - $bounds.Top
+                if ($controlWidth -le 0 -or $controlHeight -le 0 -or
+                    $bounds.Left -lt $clientOrigin.X -or $bounds.Top -lt $clientOrigin.Y -or
+                    $bounds.Right -gt ($clientOrigin.X + $client.Right) -or
+                    $bounds.Bottom -gt ($clientOrigin.Y + $client.Bottom)) {
+                    throw "Compact control #$controlId falls outside the client area."
+                }
+                if ($controlId -eq 109) {
+                    $resultHeight = $controlHeight / $scale
+                    if ($resultHeight -lt 55) {
+                        throw "Compact result edit is only $resultHeight logical units tall; expected at least 55."
+                    }
+                } elseif (-not [SpeedDiscSmoke]::IsWindowEnabled($control) -or
+                          -not ([SpeedDiscSmoke]::GetWindowLongW($control, -16) -band 0x00010000) -or
+                          -not $tabOrder.Contains($control)) {
+                    throw "Compact export control #$controlId is disabled or unreachable by Tab."
+                }
+            }
+            $compactFact = "Compact synthetic demo: ${actualW}x${actualH} logical client at runner DPI $dpi; result height $([Math]::Round($resultHeight)) logical; both export controls inside client, enabled and in native Tab order."
+        } finally {
+            $null = [SpeedDiscSmoke]::SetThreadDpiAwarenessContext($priorDpiContext)
+        }
+    }
     $width = $rect.Right - $rect.Left
     $height = $rect.Bottom - $rect.Top
     if ($width -lt 320 -or $height -lt 240 -or $width -gt 8192 -or $height -gt 8192) {
@@ -77,6 +173,7 @@ try {
     $readyMs = $timer.ElapsedMilliseconds
     $workingBytes = $app.WorkingSet64
     $screenshotStatus = 'unavailable'
+    $screenshotName = if ($Demo) { 'speeddisc-gui-compact.png' } else { 'speeddisc-gui.png' }
     # Print exactly this process's window; never capture the runner desktop or use destructive controls.
     try {
         Add-Type -AssemblyName System.Drawing.Common
@@ -96,7 +193,7 @@ try {
                     }
                 }
                 if ($colours.Count -ge 8) {
-                    $bitmap.Save((Join-Path $evidence 'speeddisc-gui.png'), [Drawing.Imaging.ImageFormat]::Png)
+                    $bitmap.Save((Join-Path $evidence $screenshotName), [Drawing.Imaging.ImageFormat]::Png)
                     $screenshotStatus = 'saved window-only PNG'
                 }
             }
@@ -119,6 +216,8 @@ try {
         "Time to responsive window on this runner (includes polling): ${readyMs} ms"
         "Working set on this runner: $workingBytes bytes"
         "Screenshot: $screenshotStatus; synthetic demo: $Demo"
+        $compactFact
+        'Compact sizing at runner DPI is not a 125%-DPI hardware or multi-monitor test.'
         'No maintenance operation, elevation request, system change or export was triggered.'
         'Windows Server smoke is not Windows 10/11 standard-user, USB, UAC, SmartScreen or performance acceptance.'
     )
