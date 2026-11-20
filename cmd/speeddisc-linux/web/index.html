@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="no-referrer">
+<title>SpeedDisc · Linux</title>
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="style.css">
+<script defer src="app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main" data-i="skip">Saltar para o conteúdo</a>
+<header class="top">
+ <div class="top-inner">
+  <div class="brand"><img src="favicon.ico" alt="" width="38" height="38"><div><strong>SpeedDisc<span>.</span></strong><small>LINUX WORKBENCH</small></div></div>
+  <div class="top-controls">
+   <span class="local"><i></i><span data-i="local">Sessão local</span></span>
+   <div class="language" role="group" aria-label="Idioma" data-aria="language">
+    <button type="button" data-lang="pt" aria-pressed="true">PT</button>
+    <button type="button" data-lang="en" aria-pressed="false">EN</button>
+   </div>
+   <button type="button" class="theme" id="theme" aria-pressed="false" aria-label="Modo escuro" data-aria="dark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" role="presentation"><path d="M20.8 14.5A9 9 0 0 1 9.5 3.2a9 9 0 1 0 11.3 11.3Z"/></svg>
+   </button>
+  </div>
+ </div>
+</header>
+<main id="main" class="shell">
+ <section class="hero" aria-labelledby="hero-title">
+  <div class="hero-copy">
+   <p class="eyebrow"><span></span><span data-i="eyebrow">UTILITÁRIOS LOCAIS PARA LINUX</span></p>
+   <h1 id="hero-title"><span data-i="heroA">O teu sistema.</span><br><em data-i="heroB">Mais claro.</em></h1>
+   <p class="hero-description" data-i="lead">Analisa disco, sistema e rede a partir de um só lugar. Revê os resultados e guarda os relatórios sem enviar dados para fora do computador.</p>
+   <a class="button primary hero-link" href="#tools"><span data-i="explore">Explorar ferramentas</span><span aria-hidden="true">↓</span></a>
+  </div>
+  <div class="hero-board" aria-hidden="true">
+   <div class="board-label"><span class="board-dots"><i></i><i></i><i></i></span><span>LINUX / 01</span></div>
+   <div class="orbit"><div class="orbit-ring ring-1"></div><div class="orbit-ring ring-2"></div><div class="orbit-ring ring-3"></div><b class="orbit-dot"></b><img src="favicon.ico" alt="" width="90" height="90"></div>
+   <p class="board-caption"><span></span>SPEEDDISC<span></span></p>
+  </div>
+ </section>
+ <noscript><p>Activa o JavaScript para usar a interface local. / Enable JavaScript to use the local interface.</p></noscript>
+ <section id="tools" class="workspace" aria-labelledby="tools-title">
+  <div class="workspace-intro">
+   <div><p class="eyebrow" data-i="toolKicker">BANCADA LOCAL</p><h2 id="tools-title" data-i="toolTitle">Ferramentas</h2></div>
+   <div class="view-switch" role="group" aria-label="Modo de visualização" data-aria="views">
+    <button type="button" data-view="tools" aria-pressed="true" data-i="toolTitle">Ferramentas</button>
+    <button type="button" data-view="ref" aria-pressed="false" data-i="reference">Referência</button>
+   </div>
+  </div>
+  <div class="workspace-grid">
+   <section class="catalog" aria-label="Catálogo" data-aria="catalog">
+    <div class="catalog-header">
+     <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.7" cy="10.7" r="6.3"/><path d="m16 16 4.1 4.1"/></svg><span class="sr-only" data-i="search">Pesquisar ferramentas</span><input type="search" id="search" autocomplete="off" placeholder="Pesquisar ferramentas"></label>
+     <div class="filters" id="filters" role="group" aria-label="Categorias" data-aria="categories"></div>
+     <p class="catalog-status" id="catalog-status" role="status"></p>
+     <button type="button" id="retry" class="button subtle" hidden data-i="retry">Tentar de novo</button>
+    </div>
+    <div class="cards" id="cards"></div>
+   </section>
+   <section class="report" id="report" aria-labelledby="report-title" tabindex="-1">
+    <div class="report-head">
+     <div class="report-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h8l4 4v14H6zM14 3v5h4M8.5 12h7m-7 4h7"/></svg></div>
+     <div><p class="eyebrow" data-i="reportKicker">SAÍDA E EXPORTAÇÃO</p><h2 id="report-title" data-i="reportTitle">Relatório</h2></div>
+    </div>
+    <div id="report-empty" class="empty-report"><div aria-hidden="true" class="empty-art"><i></i><i></i><i></i></div><p data-i="empty">Os resultados aparecem aqui depois de executares uma ferramenta.</p></div>
+    <div id="report-result" hidden>
+     <div class="result-title"><h3 id="result-title"></h3><span class="badge" id="result-status"></span></div>
+     <p class="result-duration" id="result-duration"></p>
+     <div class="result-scroll"><table><thead><tr><th scope="col" data-i="field">Campo</th><th scope="col" data-i="value">Resultado</th></tr></thead><tbody id="result-rows"></tbody></table></div>
+     <div class="exports" id="exports" hidden>
+      <a class="button primary" id="export-pdf" download data-i="pdf">Guardar PDF</a>
+      <a class="button subtle" id="export-txt" download data-i="txt">Guardar TXT</a>
+     </div>
+    </div>
+    <p id="report-live" class="sr-only" role="status" aria-live="polite"></p>
+    <p class="report-alert" id="report-alert" role="alert" hidden></p>
+   </section>
+  </div>
+ </section>
+ <footer><span>SpeedDisc · Linux</span><span data-i="private">Interface local · não requer uma conta</span><button type="button" id="end" class="button subtle" data-i="end">Terminar sessão</button></footer>
+</main>
+<dialog id="end-dialog" aria-labelledby="end-title">
+ <h2 id="end-title" data-i="endAsk">Terminar sessão?</h2>
+ <p data-i="endNote">O SpeedDisc deixa de correr. Guarda primeiro os relatórios que queres conservar.</p>
+ <p id="end-error" class="report-alert" hidden role="alert"></p>
+ <div class="exports"><button type="button" class="button subtle" id="end-cancel" autofocus data-i="cancel">Cancelar</button><button type="button" class="button primary" id="end-confirm" data-i="end">Terminar sessão</button></div>
+</dialog>
+<section id="closed" class="shell closed" hidden tabindex="-1">
+ <div><img src="favicon.ico" alt="" width="46" height="46"><h1 data-i="closed">Sessão terminada.</h1><p data-i="closedNote">Podes fechar este separador ou abrir novamente o SpeedDisc para começar outra sessão.</p></div>
+</section>
+</body>
+</html>
